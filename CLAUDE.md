@@ -3,7 +3,7 @@
 ## 0. Current State
 
 **Branch**: `ty/thumbnail-worker-setup`
-**Phase**: 2 ⬜ — next: 2.1 implement generate_thumbnail Celery task
+**Phase**: 3 ⬜ — next: 3.1 telemetry.py OTel setup
 **Task file**: `tasks/THUMBNAIL_WORKER.md` — read at session start, update as tasks complete
 
 **Known pitfalls**:

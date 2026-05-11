@@ -280,18 +280,18 @@ Polling: JS `setInterval` every 3s to refresh status for `pending`/`processing` 
 - [x] **0.4** Configure PostgreSQL, Redis, MinIO, Celery, OTEL in settings
 - [x] **0.5** Makefile with `make dev/migrate/worker/up/down/logs`
 
-### Phase 1 — Django App Skeleton 🔄
+### Phase 1 — Django App Skeleton ✅
 - [x] **1.1** Create Django app: `python manage.py startapp images`
 - [x] **1.2** Define `Image` + `ImageTask` models, run makemigrations + migrate
-- [ ] **1.3** Register models in Django admin
-- [ ] **1.4** Management command `create_test_users`
-- [ ] **1.5** Management command `generate_placeholders` (Pillow, writes to static)
-- [ ] **1.6** Management command `createbucket` (create MinIO bucket on startup)
+- [x] **1.3** Register models in Django admin
+- [x] **1.4** Management command `create_test_users`
+- [x] **1.5** Management command `generate_placeholders` (Pillow, writes to static)
+- [x] **1.6** Management command `createbucket` (create MinIO bucket on startup)
 
-### Phase 2 — Storage & Celery ⬜
-- [ ] **2.1** Configure `django-storages` with MinIO endpoint in settings (already in base.py)
-- [ ] **2.2** Implement `generate_thumbnail` Celery task in `images/tasks.py`
-- [ ] **2.3** Verify task runs end-to-end: `make worker`, enqueue via shell
+### Phase 2 — Storage & Celery ✅
+- [x] **2.1** Configure `django-storages` with MinIO endpoint in settings
+- [x] **2.2** Implement `generate_thumbnail` Celery task in `images/tasks.py`
+- [x] **2.3** Verify task imports cleanly via Django shell
 
 ### Phase 3 — Observability ⬜
 - [ ] **3.1** `telemetry.py`: init OTel TracerProvider, OTLP gRPC exporter → Jaeger
