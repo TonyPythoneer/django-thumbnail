@@ -3,7 +3,7 @@
 ## 0. Current State
 
 **Branch**: `ty/thumbnail-worker-setup`
-**Phase**: 1 🔄 — next: 1.3 admin registration
+**Phase**: 2 ⬜ — next: 2.1 implement generate_thumbnail Celery task
 **Task file**: `tasks/THUMBNAIL_WORKER.md` — read at session start, update as tasks complete
 
 **Known pitfalls**:
@@ -51,15 +51,15 @@ django-thumbnail/
 │   └── images/                  ← main app
 │       ├── models.py            ← need schema? read this (Image + ImageTask)
 │       ├── migrations/          ✅
-│       ├── admin.py             ← ⬜ 1.3
+│       ├── admin.py             ← ✅ 1.3
 │       ├── views.py
 │       ├── urls.py
-│       ├── tasks.py             ← Celery task: generate_thumbnail
+│       ├── tasks.py             ← Celery task: generate_thumbnail (⬜ 2.1)
 │       ├── storage.py           ← MinIO helpers
 │       ├── management/commands/
-│       │   ├── create_test_users.py    ← ⬜ 1.4
-│       │   ├── generate_placeholders.py ← ⬜ 1.5
-│       │   └── createbucket.py         ← ⬜ 1.6
+│       │   ├── create_test_users.py    ← ✅ 1.4
+│       │   ├── generate_placeholders.py ← ✅ 1.5
+│       │   └── createbucket.py         ← ✅ 1.6
 │       └── tests/
 ```
 
