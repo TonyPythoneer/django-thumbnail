@@ -98,3 +98,4 @@ AWS_QUERYSTRING_AUTH = True
 # OpenTelemetry
 OTEL_EXPORTER_OTLP_ENDPOINT = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
 OTEL_SERVICE_NAME = "django-thumbnail"
+OTEL_SDK_DISABLED = os.environ.get("OTEL_SDK_DISABLED", "false")

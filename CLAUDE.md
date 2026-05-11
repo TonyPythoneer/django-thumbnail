@@ -3,7 +3,7 @@
 ## 0. Current State
 
 **Branch**: `ty/thumbnail-worker-setup`
-**Phase**: 3 ⬜ — next: 3.1 telemetry.py OTel setup
+**Phase**: 3 ✅ — next: 4.1 API views (image list/upload/delete)
 **Task file**: `tasks/THUMBNAIL_WORKER.md` — read at session start, update as tasks complete
 
 **Known pitfalls**:

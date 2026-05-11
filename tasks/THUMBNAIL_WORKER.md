@@ -293,12 +293,12 @@ Polling: JS `setInterval` every 3s to refresh status for `pending`/`processing` 
 - [x] **2.2** Implement `generate_thumbnail` Celery task in `images/tasks.py`
 - [x] **2.3** Verify task imports cleanly via Django shell
 
-### Phase 3 — Observability ⬜
-- [ ] **3.1** `telemetry.py`: init OTel TracerProvider, OTLP gRPC exporter → Jaeger
-- [ ] **3.2** Django auto-instrumentation in `AppConfig.ready()`
-- [ ] **3.3** Manual span in `generate_thumbnail` with all required attributes
-- [ ] **3.4** Manual span around MinIO upload/download calls
-- [ ] **3.5** Verify traces appear in Jaeger UI at http://localhost:16686
+### Phase 3 — Observability ✅
+- [x] **3.1** `telemetry.py`: init OTel TracerProvider, OTLP gRPC exporter → Jaeger
+- [x] **3.2** Django auto-instrumentation in `AppConfig.ready()`
+- [x] **3.3** Manual span in `generate_thumbnail` with all required attributes
+- [x] **3.4** Manual span around MinIO upload/download calls
+- [x] **3.5** Verify traces appear in Jaeger UI at http://localhost:16686
 
 ### Phase 4 — API Views ⬜
 - [ ] **4.1** `images/views.py`: image list, upload, delete (`JsonResponse` + `@login_required`)
@@ -306,6 +306,15 @@ Polling: JS `setInterval` every 3s to refresh status for `pending`/`processing` 
 - [ ] **4.3** `images/views.py`: login/logout views (session-based)
 - [ ] **4.4** Wire up `images/urls.py`, include in root `urls.py`
 - [ ] **4.5** Owner check: filter all querysets by `request.user`
+- [ ] **4.6** Add `CeleryInstrumentor().instrument()` in `images/apps.py:ready()` — propagates trace context view → broker → worker (currently two disconnected traces)
+- [ ] **4.7** Add `BotocoreInstrumentor().instrument()` — MinIO S3 calls become child HTTP spans under `minio.upload`/`minio.download`
+- [ ] **4.8** End-to-end trace verify in Jaeger: single trace spans HTTP request → Celery publish → worker task → S3 ops
+
+**Observability debt from Phase 3** (deferred per plan §3.3 "manual span only"):
+- Celery trace context propagation missing → 4.6
+- MinIO HTTP-level spans missing → 4.7
+- Full chain verification deferred until views exist → 4.8
+- Deps to add to `pyproject.toml`: `opentelemetry-instrumentation-celery`, `opentelemetry-instrumentation-botocore`
 
 ### Phase 5 — HTML Frontend ⬜
 - [ ] **5.1** Install `django-bootstrap5`, add to `INSTALLED_APPS`
