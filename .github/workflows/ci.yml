@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: django_thumbnail_test
+          POSTGRES_USER: django_thumbnail
+          POSTGRES_PASSWORD: django_thumbnail
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U django_thumbnail"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --group dev
+
+      - name: Lint
+        run: uv run ruff check
+
+      - name: Test
+        env:
+          DJANGO_SETTINGS_MODULE: django_thumbnail.settings.test
+        run: uv run pytest
+        working-directory: django_thumbnail
