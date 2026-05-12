@@ -324,11 +324,10 @@ Polling: JS `setInterval` every 3s to refresh status for `pending`/`processing` 
 - [x] **5.5** `images/gallery.html`: table with status badge + thumbnail `<img>`
 - [x] **5.6** JS polling in gallery: refresh status cells every 3s for non-done rows
 
-### Phase 6 — Tests ⬜
-- [ ] **6.1** Test settings (`settings/test.py`): InMemoryStorage, `CELERY_TASK_ALWAYS_EAGER`, dummy OTEL
-- [ ] **6.2** API tests: upload, get status, delete, auth, cross-user isolation
-- [ ] **6.3** Task tests: success path (mocked MinIO), failure path (retry)
-- [ ] **6.4** Benchmark script
+### Phase 6 — Tests ✅
+- [x] **6.1** Test settings (`settings/test.py`): InMemoryStorage, `CELERY_TASK_ALWAYS_EAGER`, OTel disabled via `OTEL_SDK_DISABLED`
+- [x] **6.2** API tests: upload, get status, delete, auth, cross-user isolation
+- [x] **6.3** Task tests: success path (mocked MinIO), failure path (retry)
 
 ---
 

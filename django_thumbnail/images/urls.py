@@ -5,7 +5,6 @@ from . import views
 urlpatterns = [
     # API
     path("api/images/", views.images_list, name="images-list"),
-    path("api/images/", views.images_create, name="images-create"),
     path("api/images/<uuid:image_id>/", views.images_detail, name="images-detail"),
     path("api/tasks/", views.tasks_create, name="tasks-create"),
     path("api/tasks/<uuid:task_id>/", views.tasks_detail, name="tasks-detail"),

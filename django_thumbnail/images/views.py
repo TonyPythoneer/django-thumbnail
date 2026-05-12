@@ -33,33 +33,19 @@ def parse_json_body(view_func):
 
 @csrf_exempt
 @login_required_json
-@require_http_methods([HTTPMethod.GET])
-def images_list(request: HttpRequest) -> JsonResponse:
+@require_http_methods([HTTPMethod.GET, HTTPMethod.POST])
+@parse_json_body
+def images_list(request: HttpRequest, body: dict) -> JsonResponse:
+    if request.method == HTTPMethod.POST:
+        filename = body.get("filename")
+        if not filename:
+            return JsonResponse({"error": "filename required"}, status=HTTPStatus.BAD_REQUEST)
+        image = Image.create_with_key(request.user, filename)
+        presign_url = S3.presign_upload_url(image)
+        return JsonResponse({"image_id": str(image.id), "upload_url": presign_url}, status=HTTPStatus.CREATED)
+
     qs = Image.objects.for_user(request.user)
     return JsonResponse({"images": [i.to_dict() for i in qs]})
-
-
-@csrf_exempt
-@login_required_json
-@require_http_methods([HTTPMethod.POST])
-@parse_json_body
-def images_create(request: HttpRequest, body: dict) -> JsonResponse:
-    filename = body.get("filename")
-    if not filename:
-        return JsonResponse(
-            {"error": "filename required"}, status=HTTPStatus.BAD_REQUEST
-        )
-
-    image = Image.create_with_key(request.user, filename)
-    presign_url = S3.presign_upload_url(image)
-
-    return JsonResponse(
-        {
-            "image_id": str(image.id),
-            "upload_url": presign_url,
-        },
-        status=HTTPStatus.CREATED,
-    )
 
 
 @csrf_exempt

@@ -54,7 +54,7 @@ def generate_thumbnail(self, image_task_id: str) -> None:
         attributes={"task_id": self.request.id or "", "image_task_id": image_task_id},
     ) as span:
         task = ImageTask.objects.select_related("image").get(id=image_task_id)
-        task.mark_processing(self.request.id)
+        task.mark_processing(self.request.id or "")
         span.set_attributes(
             {
                 "image_id": str(task.image.id),
