@@ -1,7 +1,7 @@
 import json
 import tempfile
-import time
 import urllib.request
+from http import HTTPMethod
 from pathlib import Path
 
 from django.contrib.auth.models import User
@@ -48,7 +48,7 @@ class Command(BaseCommand):
             req = urllib.request.Request(
                 upload_url,
                 data=image_bytes,
-                method="PUT",
+                method=HTTPMethod.PUT,
                 headers={"Content-Type": ""},
             )
             with urllib.request.urlopen(req) as r:

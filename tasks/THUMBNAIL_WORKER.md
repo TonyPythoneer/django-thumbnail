@@ -316,13 +316,13 @@ Polling: JS `setInterval` every 3s to refresh status for `pending`/`processing` 
 - Full chain verification deferred until views exist → 4.8
 - Deps to add to `pyproject.toml`: `opentelemetry-instrumentation-celery`, `opentelemetry-instrumentation-botocore`
 
-### Phase 5 — HTML Frontend ⬜
-- [ ] **5.1** Install `django-bootstrap5`, add to `INSTALLED_APPS`
-- [ ] **5.2** `base.html`: Bootstrap 5 navbar (user email + logout), block structure
-- [ ] **5.3** `auth/login.html`: login form
-- [ ] **5.4** `images/upload.html`: size picker radio + file input + submit
-- [ ] **5.5** `images/gallery.html`: table with status badge + thumbnail `<img>`
-- [ ] **5.6** JS polling in gallery: refresh status cells every 3s for non-done rows
+### Phase 5 — HTML Frontend ✅
+- [x] **5.1** Install `django-bootstrap5`, add to `INSTALLED_APPS`
+- [x] **5.2** `base.html`: Bootstrap 5 navbar (user email + logout), block structure
+- [x] **5.3** `auth/login.html`: login form
+- [x] **5.4** `images/upload.html`: file input + submit
+- [x] **5.5** `images/gallery.html`: table with status badge + thumbnail `<img>`
+- [x] **5.6** JS polling in gallery: refresh status cells every 3s for non-done rows
 
 ### Phase 6 — Tests ⬜
 - [ ] **6.1** Test settings (`settings/test.py`): InMemoryStorage, `CELERY_TASK_ALWAYS_EAGER`, dummy OTEL

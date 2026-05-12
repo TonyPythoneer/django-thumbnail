@@ -1,15 +1,17 @@
+import io
 import json
 from http import HTTPMethod, HTTPStatus
 
 from celery.result import AsyncResult
-from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, JsonResponse
+from django.shortcuts import redirect, render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
-from .models import Image, ImageTask
-from .tasks import generate_thumbnail
+from .forms import LoginForm, UploadForm
+from .models import Image, ImageStatus, ImageTask
 from .utils import S3, login_required_json
 
 
@@ -68,9 +70,7 @@ def images_detail(request: HttpRequest, image_id: str) -> JsonResponse:
     if not image:
         return JsonResponse({"error": "not found"}, status=HTTPStatus.NOT_FOUND)
 
-    for k in [image.original_key, image.thumbnail_key]:
-        if k:
-            S3.client().delete_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=k)
+    image.delete_from_storage()
     image.delete()
     return JsonResponse({"deleted": image_id})
 
@@ -93,11 +93,7 @@ def tasks_create(request: HttpRequest, body: dict) -> JsonResponse:
     if not image:
         return JsonResponse({"error": "not found"}, status=HTTPStatus.NOT_FOUND)
 
-    task = ImageTask.objects.create(image=image)
-    async_result = generate_thumbnail.delay(str(task.id))
-    task.celery_task_id = async_result.id
-    task.save(update_fields=["celery_task_id", "updated_at"])
-
+    task = ImageTask.create_and_dispatch(image)
     return JsonResponse(task.to_dict(), status=HTTPStatus.CREATED)
 
 
@@ -146,3 +142,68 @@ def auth_login(request: HttpRequest, body: dict) -> JsonResponse:
 def auth_logout(request: HttpRequest) -> JsonResponse:
     logout(request)
     return JsonResponse({"ok": True})
+
+
+# ---------- HTML Views ----------
+
+
+def html_login(request: HttpRequest):
+    if request.user.is_authenticated:
+        return redirect("gallery")
+    form = LoginForm(request.POST or None)
+    if request.method == HTTPMethod.POST and form.is_valid():
+        user = authenticate(
+            request,
+            username=form.cleaned_data["username"],
+            password=form.cleaned_data["password"],
+        )
+        if user:
+            login(request, user)
+            return redirect("gallery")
+        form.add_error(None, "Invalid credentials")
+    return render(request, "auth/login.html", {"form": form})
+
+
+@require_http_methods([HTTPMethod.POST])
+def html_logout(request: HttpRequest):
+    logout(request)
+    return redirect("login")
+
+
+@login_required(login_url="login")
+def gallery(request: HttpRequest):
+    images_qs = Image.objects.for_user(request.user).prefetch_related("tasks")
+    rows = []
+    for img in images_qs:
+        task = img.latest_task()
+        rows.append({
+            "id": str(img.id),
+            "original_filename": img.original_filename,
+            "status": task.status if task else ImageStatus.PENDING,
+            "task_id": str(task.id) if task else "",
+            "thumbnail_url": S3.presign_preview_url(img) if task and task.status == ImageStatus.DONE else None,
+            "created_at": img.created_at,
+        })
+    return render(request, "images/gallery.html", {"images": rows})
+
+
+@login_required(login_url="login")
+def upload(request: HttpRequest):
+    form = UploadForm(request.POST or None, request.FILES or None)
+    if request.method == HTTPMethod.POST and form.is_valid():
+        f = form.cleaned_data["file"]
+        image = Image.create_with_key(request.user, f.name)
+        image.upload_original(io.BytesIO(f.read()))
+        ImageTask.create_and_dispatch(image)
+        return redirect("gallery")
+    return render(request, "images/upload.html", {"form": form})
+
+
+@login_required(login_url="login")
+@require_http_methods([HTTPMethod.POST])
+def image_delete(request: HttpRequest, image_id: str):
+    image = Image.objects.for_user(request.user).filter(id=image_id).first()
+    if image:
+        image.delete_from_storage()
+        image.delete()
+    return redirect("gallery")

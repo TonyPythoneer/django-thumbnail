@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Gallery{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2>My Images</h2>
+  <a href="{% url 'upload' %}" class="btn btn-primary btn-sm">+ Upload</a>
+</div>
+
+{% if images %}
+<table class="table table-bordered align-middle">
+  <thead class="table-dark">
+    <tr>
+      <th>Filename</th>
+      <th>Status</th>
+      <th>Thumbnail</th>
+      <th>Created</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for img in images %}
+    <tr data-image-id="{{ img.id }}">
+      <td>{{ img.original_filename }}</td>
+      <td>
+        <span class="badge
+          {% if img.status == 'done' %}bg-success
+          {% elif img.status == 'failed' %}bg-danger
+          {% elif img.status == 'processing' %}bg-warning text-dark
+          {% else %}bg-secondary{% endif %}
+          status-badge" data-task-id="{{ img.task_id }}">
+          {{ img.status }}
+        </span>
+      </td>
+      <td>
+        {% if img.thumbnail_url %}
+          <img src="{{ img.thumbnail_url }}" alt="thumbnail" style="max-height:60px;">
+        {% else %}
+          <span class="text-muted">—</span>
+        {% endif %}
+      </td>
+      <td>{{ img.created_at|date:"Y-m-d H:i" }}</td>
+      <td>
+        <form method="post" action="{% url 'image-delete' img.id %}" class="d-inline">
+          {% csrf_token %}
+          <button class="btn btn-danger btn-sm" type="submit"
+            onclick="return confirm('Delete this image?')">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="text-muted">No images yet. <a href="{% url 'upload' %}">Upload one</a>.</p>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const pending = document.querySelectorAll('.status-badge[data-task-id]');
+const activeBadges = Array.from(pending).filter(b => ['pending','processing'].includes(b.textContent.trim()));
+
+if (activeBadges.length > 0) {
+  const poll = setInterval(async () => {
+    const still = activeBadges.filter(b => ['pending','processing'].includes(b.textContent.trim()));
+    if (still.length === 0) { clearInterval(poll); return; }
+
+    for (const badge of still) {
+      const taskId = badge.dataset.taskId;
+      if (!taskId) continue;
+      try {
+        const resp = await fetch(`/api/tasks/${taskId}/`);
+        const data = await resp.json();
+        badge.textContent = data.status;
+        badge.className = 'badge status-badge ' + {
+          done: 'bg-success', failed: 'bg-danger',
+          processing: 'bg-warning text-dark', pending: 'bg-secondary'
+        }[data.status];
+        if (data.status === 'done' && data.thumbnail_url) {
+          const td = badge.closest('tr').querySelector('td:nth-child(3)');
+          td.innerHTML = `<img src="${data.thumbnail_url}" alt="thumbnail" style="max-height:60px;">`;
+        }
+      } catch (_) {}
+    }
+  }, 3000);
+}
+</script>
+{% endblock %}

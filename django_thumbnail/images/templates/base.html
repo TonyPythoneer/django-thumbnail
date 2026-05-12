@@ -1,0 +1,32 @@
+{% load django_bootstrap5 %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Thumbnail Worker{% endblock %}</title>
+  {% bootstrap_css %}
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <div class="container">
+      <a class="navbar-brand" href="{% url 'gallery' %}">Thumbnail Worker</a>
+      <div class="ms-auto d-flex align-items-center gap-3">
+        {% if user.is_authenticated %}
+          <span class="text-light small">{{ user.email }}</span>
+          <form method="post" action="{% url 'html-logout' %}">
+            {% csrf_token %}
+            <button class="btn btn-outline-light btn-sm" type="submit">Logout</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  </nav>
+  <div class="container">
+    {% bootstrap_messages %}
+    {% block content %}{% endblock %}
+  </div>
+  {% bootstrap_javascript %}
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

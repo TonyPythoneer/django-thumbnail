@@ -1,3 +1,4 @@
+import io
 import uuid
 from pathlib import Path
 
@@ -67,6 +68,20 @@ class Image(models.Model):
             thumbnail_key=thumbnail_key,
         )
 
+    def upload_original(self, data: io.BytesIO) -> None:
+        from django.conf import settings
+        from .utils import S3
+
+        S3.upload(settings.AWS_STORAGE_BUCKET_NAME, self.original_key, data)
+
+    def delete_from_storage(self) -> None:
+        from django.conf import settings
+        from .utils import S3
+
+        for key in [self.original_key, self.thumbnail_key]:
+            if key:
+                S3.delete(settings.AWS_STORAGE_BUCKET_NAME, key)
+
     def to_dict(self) -> dict:
         from .utils import S3
 
@@ -111,6 +126,16 @@ class ImageTask(models.Model):
         self.status = ImageStatus.FAILED
         self.error_message = error
         self.save(update_fields=["status", "error_message", "updated_at"])
+
+    @classmethod
+    def create_and_dispatch(cls, image: "Image") -> "ImageTask":
+        from .tasks import generate_thumbnail
+
+        task = cls.objects.create(image=image)
+        async_result = generate_thumbnail.delay(str(task.id))
+        task.celery_task_id = async_result.id
+        task.save(update_fields=["celery_task_id", "updated_at"])
+        return task
 
     def to_dict(self) -> dict:
         from .utils import S3
