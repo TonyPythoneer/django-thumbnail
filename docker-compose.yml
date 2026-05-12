@@ -51,6 +51,53 @@ services:
       timeout: 5s
       retries: 5
 
+  web:
+    build: .
+    volumes:
+      - ./django_thumbnail:/app/django_thumbnail
+    command: >
+      sh -c "uv run python manage.py migrate --noinput &&
+             uv run python manage.py createbucket &&
+             uv run python manage.py create_test_users &&
+             uv run python manage.py runserver 0.0.0.0:8000"
+    ports:
+      - "8000:8000"
+    environment:
+      DJANGO_SETTINGS_MODULE: django_thumbnail.settings.local
+      POSTGRES_HOST: db
+      REDIS_URL: redis://redis:6379/0
+      MINIO_ENDPOINT_URL: http://minio:9000
+      MINIO_PUBLIC_ENDPOINT_URL: http://localhost:9000
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+      OTEL_SERVICE_NAME: django-thumbnail-app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+  worker:
+    build: .
+    volumes:
+      - ./django_thumbnail:/app/django_thumbnail
+    command: uv run python -m celery -A django_thumbnail worker -l info
+    environment:
+      DJANGO_SETTINGS_MODULE: django_thumbnail.settings.local
+      POSTGRES_HOST: db
+      REDIS_URL: redis://redis:6379/0
+      MINIO_ENDPOINT_URL: http://minio:9000
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+      OTEL_SERVICE_NAME: django-thumbnail-worker
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
 volumes:
   postgres_data:
   minio_data:

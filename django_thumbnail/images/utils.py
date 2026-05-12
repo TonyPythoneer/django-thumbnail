@@ -4,6 +4,7 @@ from typing import Callable
 
 import boto3
 import humanize
+from botocore.config import Config
 from django.conf import settings
 from django.http import HttpRequest, JsonResponse
 from mypy_boto3_s3.client import S3Client
@@ -90,7 +91,15 @@ class S3:
 
     @staticmethod
     def _presign_url(key: str, action: str) -> str:
-        return S3.client().generate_presigned_url(
+        sig_version = getattr(settings, "AWS_S3_SIGNATURE_VERSION", None)
+        client = boto3.client(
+            "s3",
+            endpoint_url=settings.MINIO_PUBLIC_ENDPOINT_URL,
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+            config=Config(signature_version=sig_version) if sig_version else None,
+        )
+        return client.generate_presigned_url(
             action,
             Params={"Bucket": settings.AWS_STORAGE_BUCKET_NAME, "Key": key},
             ExpiresIn=S3._PRESIGN_EXPIRES_IN,
