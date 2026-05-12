@@ -1,0 +1,27 @@
+{
+  "languages": {
+    "Python": {
+      "language_servers": ["pyright", "ruff"]
+    }
+  },
+  "lsp": {
+    "pyright": {
+      "settings": {
+        "python": {
+          "pythonPath": ".venv/bin/python"
+        }
+      }
+    },
+    "ruff": {
+      "settings": {
+        "interpreter": [".venv/bin/python"]
+      }
+    }
+  },
+  "on_save": [
+    {
+      "language": "Python",
+      "code_actions": ["source_organizeImports.organize"]
+    }
+  ]
+}

@@ -10,10 +10,9 @@ class ImageTaskInline(admin.TabularInline):
 
 @admin.register(Image)
 class ImageAdmin(admin.ModelAdmin):
-    list_display = ("original_filename", "user", "size_variant", "current_status", "created_at")
-    list_filter = ("size_variant",)
+    list_display = ("original_filename", "user", "current_status", "created_at")
     search_fields = ("original_filename", "user__email")
-    readonly_fields = ("id", "original_key", "thumbnail_key", "file_size", "created_at")
+    readonly_fields = ("id", "original_key", "thumbnail_key", "created_at")
     inlines = [ImageTaskInline]
 
 

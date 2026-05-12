@@ -17,7 +17,10 @@ CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = True
 
 # Use in-memory storage — no real MinIO needed in tests
-DEFAULT_FILE_STORAGE = "django.core.files.storage.InMemoryStorage"
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.InMemoryStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
 
 # Suppress OTel in tests
 OTEL_SDK_DISABLED = "true"

@@ -22,8 +22,6 @@ class Migration(migrations.Migration):
                 ('original_filename', models.CharField(max_length=255)),
                 ('original_key', models.CharField(max_length=512)),
                 ('thumbnail_key', models.CharField(blank=True, default='', max_length=512)),
-                ('size_variant', models.CharField(choices=[('small', 'Small'), ('medium', 'Medium'), ('large', 'Large'), ('custom', 'Custom')], max_length=10)),
-                ('file_size', models.BigIntegerField(default=0)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='images', to=settings.AUTH_USER_MODEL)),
             ],

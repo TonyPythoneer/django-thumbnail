@@ -9,7 +9,10 @@ dependencies = [
     "django>=6.0.5",
     "django-bootstrap5>=26.2",
     "django-storages[s3]>=1.14.6",
+    "humanize>=4.15.0",
     "opentelemetry-exporter-otlp-proto-grpc>=1.41.1",
+    "opentelemetry-instrumentation-botocore>=0.62b1",
+    "opentelemetry-instrumentation-celery>=0.62b1",
     "opentelemetry-instrumentation-django>=0.62b1",
     "opentelemetry-sdk>=1.41.1",
     "pillow>=12.2.0",
@@ -25,8 +28,10 @@ addopts = ["-ra"]
 
 [dependency-groups]
 dev = [
+    "boto3-stubs[s3]>=1.43.6",
     "factory-boy>=3.3.3",
     "pytest>=9.0.3",
     "pytest-cov>=7.1.0",
     "pytest-django>=4.12.0",
+    "ruff>=0.15.12",
 ]

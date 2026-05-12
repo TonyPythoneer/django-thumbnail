@@ -85,8 +85,11 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/"
 
-# MinIO / S3 storage
-DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+# MinIO / S3 storage (Django 5+ STORAGES dict — DEFAULT_FILE_STORAGE deprecated)
+STORAGES = {
+    "default": {"BACKEND": "storages.backends.s3boto3.S3Boto3Storage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
 AWS_ACCESS_KEY_ID = os.environ.get("MINIO_ACCESS_KEY", "minioadmin")
 AWS_SECRET_ACCESS_KEY = os.environ.get("MINIO_SECRET_KEY", "minioadmin")
 AWS_STORAGE_BUCKET_NAME = os.environ.get("MINIO_BUCKET_NAME", "thumbnails")
@@ -97,5 +100,5 @@ AWS_QUERYSTRING_AUTH = True
 
 # OpenTelemetry
 OTEL_EXPORTER_OTLP_ENDPOINT = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
-OTEL_SERVICE_NAME = "django-thumbnail"
-OTEL_SDK_DISABLED = os.environ.get("OTEL_SDK_DISABLED", "false")
+OTEL_SERVICE_NAME = os.environ.get("OTEL_SERVICE_NAME", "django-thumbnail")
+OTEL_SDK_DISABLED = os.environ.get("OTEL_SDK_DISABLED", "false").lower() == "true"

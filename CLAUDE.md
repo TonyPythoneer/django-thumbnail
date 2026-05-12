@@ -3,7 +3,7 @@
 ## 0. Current State
 
 **Branch**: `ty/thumbnail-worker-setup`
-**Phase**: 3 ✅ — next: 4.1 API views (image list/upload/delete)
+**Phase**: 4 🔄 — 4.1-4.5 done; next: 4.6 CeleryInstrumentor wiring
 **Task file**: `tasks/THUMBNAIL_WORKER.md` — read at session start, update as tasks complete
 
 **Known pitfalls**:

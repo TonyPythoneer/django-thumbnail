@@ -300,15 +300,15 @@ Polling: JS `setInterval` every 3s to refresh status for `pending`/`processing` 
 - [x] **3.4** Manual span around MinIO upload/download calls
 - [x] **3.5** Verify traces appear in Jaeger UI at http://localhost:16686
 
-### Phase 4 — API Views ⬜
-- [ ] **4.1** `images/views.py`: image list, upload, delete (`JsonResponse` + `@login_required`)
-- [ ] **4.2** `images/views.py`: task create, status, cancel
-- [ ] **4.3** `images/views.py`: login/logout views (session-based)
-- [ ] **4.4** Wire up `images/urls.py`, include in root `urls.py`
-- [ ] **4.5** Owner check: filter all querysets by `request.user`
-- [ ] **4.6** Add `CeleryInstrumentor().instrument()` in `images/apps.py:ready()` — propagates trace context view → broker → worker (currently two disconnected traces)
-- [ ] **4.7** Add `BotocoreInstrumentor().instrument()` — MinIO S3 calls become child HTTP spans under `minio.upload`/`minio.download`
-- [ ] **4.8** End-to-end trace verify in Jaeger: single trace spans HTTP request → Celery publish → worker task → S3 ops
+### Phase 4 — API Views ✅
+- [x] **4.1** `images/views.py`: image list, upload, delete (`JsonResponse` + `@login_required`)
+- [x] **4.2** `images/views.py`: task create, status, cancel
+- [x] **4.3** `images/views.py`: login/logout views (session-based)
+- [x] **4.4** Wire up `images/urls.py`, include in root `urls.py`
+- [x] **4.5** Owner check: filter all querysets by `request.user` (via `Image.objects.for_user`)
+- [x] **4.6** Add `CeleryInstrumentor().instrument()` in `images/apps.py:ready()` — propagates trace context view → broker → worker (currently two disconnected traces)
+- [x] **4.7** Add `BotocoreInstrumentor().instrument()` — MinIO S3 calls become child HTTP spans under `minio.upload`/`minio.download`
+- [x] **4.8** End-to-end trace verify in Jaeger: single trace spans HTTP request → Celery publish → worker task → S3 ops
 
 **Observability debt from Phase 3** (deferred per plan §3.3 "manual span only"):
 - Celery trace context propagation missing → 4.6
