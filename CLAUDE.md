@@ -9,6 +9,7 @@
 **Known pitfalls**:
 - `django.tasks` has no Redis backend/worker → use Celery
 - Never call `manage.py` directly → use `make` commands
+- Django commands / imports need `cd django_thumbnail` first — `DJANGO_SETTINGS_MODULE=django_thumbnail.settings.test` only resolves from inside that directory
 
 ---
 

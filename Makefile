@@ -1,4 +1,4 @@
-.PHONY: dev migrate makemigrations shell test lint format up down logs worker test-image-upload clean-db clean-bucket clean-all smoke help
+.PHONY: dev migrate makemigrations shell test lint format up-infra down-infra up-app down-app logs-app logs-infra worker test-image-upload clean-db clean-bucket clean-all smoke help
 
 # ============================================================
 # Config
@@ -16,7 +16,6 @@ JAEGER_UI     = http://localhost:16686
 MINIO_CONSOLE = http://localhost:9001
 
 # Celery
-CELERY_APP       = $(PROJECT)
 CELERY_LOG_LEVEL = info
 
 # OTEL
@@ -26,16 +25,18 @@ OTEL_FLAGS = \
 	--service_name=$(PROJECT) \
 	--metrics_exporter=none \
 	--logs_exporter=none
+OTEL_SVC_DJANGO_APP    = 'django-thumbnail-app'
+OTEL_SVC_DJANGO_WORKER = 'django-thumbnail-worker'
 
 # ============================================================
 # Local dev
 # ============================================================
 dev:                ## Run Django dev server (local, with OTel)
-	$(DJANGO_SETTINGS_LOCAL) OTEL_SERVICE_NAME=$(PROJECT)-app $(MANAGE_PY) runserver
+	$(DJANGO_SETTINGS_LOCAL) OTEL_SERVICE_NAME=$(OTEL_SVC_DJANGO_APP) $(MANAGE_PY) runserver
 
 worker:             ## Run Celery worker (local, with OTel)
-	cd $(PROJECT) && $(DJANGO_SETTINGS_LOCAL) OTEL_SERVICE_NAME=$(PROJECT)-worker \
-		$(PYTHON_CMD) -m celery -A $(CELERY_APP) worker -l $(CELERY_LOG_LEVEL)
+	cd $(PROJECT) && $(DJANGO_SETTINGS_LOCAL) OTEL_SERVICE_NAME=$(OTEL_SVC_DJANGO_WORKER) \
+		$(PYTHON_CMD) -m celery -A $(PROJECT) worker -l $(CELERY_LOG_LEVEL)
 
 shell:              ## Django shell
 	$(MANAGE_PY) shell
@@ -65,14 +66,23 @@ format:             ## Ruff auto-fix + format
 # ============================================================
 # Docker Compose
 # ============================================================
-up:                 ## Start all infra + app containers
+up-infra:           ## Start infra only (db, redis, minio, jaeger)
 	docker compose up -d
 
-down:               ## Stop all containers
-	docker compose down
+down-infra:         ## Stop infra only (stops app first if running)
+	docker compose --profile app down
 
-logs:               ## Tail all container logs
-	docker compose logs -f
+up-app:             ## Start full stack (infra + init + web + worker)
+	docker compose --profile app up -d --build --force-recreate init web worker
+
+down-app:           ## Stop all containers (infra + app)
+	docker compose --profile app down
+
+logs-app:           ## Tail app logs (web, worker)
+	docker compose logs -f web worker
+
+logs-infra:         ## Tail infra logs (db, redis, minio, jaeger)
+	docker compose logs -f db redis minio jaeger
 
 # ============================================================
 # Integration / smoke tests

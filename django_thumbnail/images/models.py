@@ -2,8 +2,11 @@ import io
 import uuid
 from pathlib import Path
 
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import models
+
+from .utils import S3
 
 
 class ImageStatus(models.TextChoices):
@@ -69,21 +72,14 @@ class Image(models.Model):
         )
 
     def upload_original(self, data: io.BytesIO) -> None:
-        from django.conf import settings
-        from .utils import S3
-
         S3.upload(settings.AWS_STORAGE_BUCKET_NAME, self.original_key, data)
 
     def delete_from_storage(self) -> None:
-        from django.conf import settings
-        from .utils import S3
-
         for key in [self.original_key, self.thumbnail_key]:
             if key:
                 S3.delete(settings.AWS_STORAGE_BUCKET_NAME, key)
 
     def to_dict(self) -> dict:
-        from .utils import S3
 
         return {
             "id": str(self.id),
@@ -129,7 +125,7 @@ class ImageTask(models.Model):
 
     @classmethod
     def create_and_dispatch(cls, image: "Image") -> "ImageTask":
-        from .tasks import generate_thumbnail
+        from .tasks import generate_thumbnail  # local import: tasks.py imports ImageTask from models.py (circular)
 
         task = cls.objects.create(image=image)
         async_result = generate_thumbnail.delay(str(task.id))
@@ -138,8 +134,6 @@ class ImageTask(models.Model):
         return task
 
     def to_dict(self) -> dict:
-        from .utils import S3
-
         return {
             "task_id": str(self.id),
             "celery_task_id": self.celery_task_id,

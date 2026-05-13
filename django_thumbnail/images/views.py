@@ -15,28 +15,17 @@ from .models import Image, ImageStatus, ImageTask
 from .utils import S3, login_required_json
 
 
-def parse_json_body(view_func):
-    def wrapper(request: HttpRequest, *args, **kwargs):
-        try:
-            body = json.loads(request.body or b"{}")
-        except json.JSONDecodeError:
-            return JsonResponse(
-                {"error": "invalid json"}, status=HTTPStatus.BAD_REQUEST
-            )
-        return view_func(request, body, *args, **kwargs)
-
-    return wrapper
-
-
 # ---------- Images ----------
 
 
-@csrf_exempt
 @login_required_json
 @require_http_methods([HTTPMethod.GET, HTTPMethod.POST])
-@parse_json_body
-def images_list(request: HttpRequest, body: dict) -> JsonResponse:
+def images_list(request: HttpRequest) -> JsonResponse:
     if request.method == HTTPMethod.POST:
+        try:
+            body = json.loads(request.body or b"{}")
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "invalid json"}, status=HTTPStatus.BAD_REQUEST)
         filename = body.get("filename")
         if not filename:
             return JsonResponse({"error": "filename required"}, status=HTTPStatus.BAD_REQUEST)
@@ -48,7 +37,6 @@ def images_list(request: HttpRequest, body: dict) -> JsonResponse:
     return JsonResponse({"images": [i.to_dict() for i in qs]})
 
 
-@csrf_exempt
 @login_required_json
 @require_http_methods([HTTPMethod.DELETE])
 def images_detail(request: HttpRequest, image_id: str) -> JsonResponse:
@@ -64,11 +52,13 @@ def images_detail(request: HttpRequest, image_id: str) -> JsonResponse:
 # ---------- Tasks ----------
 
 
-@csrf_exempt
 @login_required_json
 @require_http_methods([HTTPMethod.POST])
-@parse_json_body
-def tasks_create(request: HttpRequest, body: dict) -> JsonResponse:
+def tasks_create(request: HttpRequest) -> JsonResponse:
+    try:
+        body = json.loads(request.body or b"{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "invalid json"}, status=HTTPStatus.BAD_REQUEST)
     image_id = body.get("image_id")
     if not image_id:
         return JsonResponse(
@@ -83,7 +73,6 @@ def tasks_create(request: HttpRequest, body: dict) -> JsonResponse:
     return JsonResponse(task.to_dict(), status=HTTPStatus.CREATED)
 
 
-@csrf_exempt
 @login_required_json
 @require_http_methods([HTTPMethod.GET, HTTPMethod.DELETE])
 def tasks_detail(request: HttpRequest, task_id: str) -> JsonResponse:
@@ -109,8 +98,11 @@ def tasks_detail(request: HttpRequest, task_id: str) -> JsonResponse:
 
 @csrf_exempt
 @require_http_methods([HTTPMethod.POST])
-@parse_json_body
-def auth_login(request: HttpRequest, body: dict) -> JsonResponse:
+def auth_login(request: HttpRequest) -> JsonResponse:
+    try:
+        body = json.loads(request.body or b"{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "invalid json"}, status=HTTPStatus.BAD_REQUEST)
     username = body.get("username") or body.get("email")
     password = body.get("password")
     user = authenticate(request, username=username, password=password)

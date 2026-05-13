@@ -29,6 +29,7 @@ addopts = ["-ra"]
 [dependency-groups]
 dev = [
     "boto3-stubs[s3]>=1.43.6",
+    "django-stubs>=6.0.4",
     "factory-boy>=3.3.3",
     "pytest>=9.0.3",
     "pytest-cov>=7.1.0",

@@ -1,31 +1,14 @@
-import functools
 import io
-from typing import Callable
+from typing import TYPE_CHECKING
 
 import boto3
-import humanize
 from botocore.config import Config
 from django.conf import settings
 from django.http import HttpRequest, JsonResponse
-from mypy_boto3_s3.client import S3Client
-from opentelemetry.trace import Span
 
-from .models import Image
-
-
-def _traced(span_name: str):
-    def decorator(func: Callable[..., object]):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            from django_thumbnail.telemetry import get_tracer
-
-            tracer = get_tracer()
-            with tracer.start_as_current_span(span_name) as span:
-                return func(*args, span=span, **kwargs)
-
-        return wrapper
-
-    return decorator
+if TYPE_CHECKING:
+    from mypy_boto3_s3.client import S3Client
+    from .models import Image
 
 
 class S3:
@@ -41,39 +24,13 @@ class S3:
         return boto3.client("s3", **S3._CLIENT_SETTINGS)
 
     @staticmethod
-    @_traced("s3.download")
-    def download(bucket: str, key: str, span: Span | None = None) -> io.BytesIO:
+    def download(bucket: str, key: str) -> io.BytesIO:
         obj = S3.client().get_object(Bucket=bucket, Key=key)
-        body = obj["Body"].read()
-        if span:
-            span.set_attributes(
-                {
-                    "bucket": bucket,
-                    "key": key,
-                    "filename": key.split("/")[-1],
-                    "size_bytes": len(body),
-                    "readable_size": humanize.naturalsize(len(body)),
-                }
-            )
-        return io.BytesIO(body)
+        return io.BytesIO(obj["Body"].read())
 
     @staticmethod
-    @_traced("s3.upload")
-    def upload(
-        bucket: str, key: str, data: io.BytesIO, span: Span | None = None
-    ) -> None:
-        body = data.getvalue()
-        if span:
-            span.set_attributes(
-                {
-                    "bucket": bucket,
-                    "key": key,
-                    "filename": key.split("/")[-1],
-                    "size_bytes": len(body),
-                    "readable_size": humanize.naturalsize(len(body)),
-                }
-            )
-        S3.client().put_object(Bucket=bucket, Key=key, Body=body)
+    def upload(bucket: str, key: str, data: io.BytesIO) -> None:
+        S3.client().put_object(Bucket=bucket, Key=key, Body=data.getvalue())
 
     @staticmethod
     def delete(bucket: str, key: str) -> None:

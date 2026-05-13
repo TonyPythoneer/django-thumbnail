@@ -1,27 +1,47 @@
 {
   "languages": {
     "Python": {
-      "language_servers": ["pyright", "ruff"]
-    }
+      "language_servers": ["pyright", "ruff"],
+      "format_on_save": "on",
+      "formatter": {
+        "external": {
+          "command": "uv",
+          "arguments": [
+            "run",
+            "ruff",
+            "format",
+            "--stdin-filename",
+            "{buffer_path}",
+            "-",
+          ],
+        },
+      },
+      "on_save": {
+        "code_actions": {
+          "source.organizeImports.ruff": true,
+        },
+      },
+    },
   },
   "lsp": {
     "pyright": {
       "settings": {
         "python": {
-          "pythonPath": ".venv/bin/python"
-        }
-      }
+          "pythonPath": ".venv/bin/python",
+        },
+        "pyright": {
+          "plugins": {
+            "django-stubs": {
+              "django_settings_module": "django_thumbnail.settings.local",
+            },
+          },
+        },
+      },
     },
     "ruff": {
       "settings": {
-        "interpreter": [".venv/bin/python"]
-      }
-    }
+        "interpreter": [".venv/bin/python"],
+      },
+    },
   },
-  "on_save": [
-    {
-      "language": "Python",
-      "code_actions": ["source_organizeImports.organize"]
-    }
-  ]
 }

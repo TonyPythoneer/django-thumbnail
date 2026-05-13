@@ -1,6 +1,23 @@
-services:
+x-app-env: &app-env
+  DJANGO_SETTINGS_MODULE: django_thumbnail.settings.local
+  POSTGRES_HOST: db
+  REDIS_URL: redis://redis:6379/0
+  MINIO_ENDPOINT_URL: http://minio:9000
+  MINIO_PUBLIC_ENDPOINT_URL: http://localhost:9000
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+
+x-app-depends: &app-depends
   db:
-    image: postgres:17
+    condition: service_healthy
+  redis:
+    condition: service_healthy
+  minio:
+    condition: service_healthy
+
+services:
+  # ── Infra (always up) ────────────────────────────────────────
+  db:
+    image: postgres:17-alpine
     environment:
       POSTGRES_DB: django_thumbnail
       POSTGRES_USER: django_thumbnail
@@ -30,9 +47,9 @@ services:
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
     ports:
-      - "16686:16686"   # Jaeger UI
-      - "4317:4317"     # OTLP gRPC
-      - "4318:4318"     # OTLP HTTP
+      - "16686:16686" # Jaeger UI
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
 
   minio:
     image: minio/minio:latest
@@ -41,8 +58,8 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     ports:
-      - "9000:9000"   # S3 API
-      - "9001:9001"   # MinIO Console UI
+      - "9000:9000" # S3 API
+      - "9001:9001" # MinIO Console UI
     volumes:
       - minio_data:/data
     healthcheck:
@@ -51,52 +68,51 @@ services:
       timeout: 5s
       retries: 5
 
-  web:
-    build: .
+  # ── App (profile: app) ───────────────────────────────────────
+  init:
+    profiles: [app]
+    build: .                     # build once, tag as django-thumbnail-app
+    image: django-thumbnail-app  # web/worker reuse this image, no rebuild
     volumes:
       - ./django_thumbnail:/app/django_thumbnail
     command: >
-      sh -c "uv run python manage.py migrate --noinput &&
-             uv run python manage.py createbucket &&
-             uv run python manage.py create_test_users &&
-             uv run python manage.py runserver 0.0.0.0:8000"
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py create_bucket &&
+             python manage.py create_test_users"
+    environment:
+      <<: *app-env
+    depends_on:
+      <<: *app-depends
+
+  web:
+    profiles: [app]
+    image: django-thumbnail-app
+    volumes:
+      - ./django_thumbnail:/app/django_thumbnail
+    command: python manage.py runserver 0.0.0.0:8000
     ports:
       - "8000:8000"
     environment:
-      DJANGO_SETTINGS_MODULE: django_thumbnail.settings.local
-      POSTGRES_HOST: db
-      REDIS_URL: redis://redis:6379/0
-      MINIO_ENDPOINT_URL: http://minio:9000
-      MINIO_PUBLIC_ENDPOINT_URL: http://localhost:9000
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+      <<: *app-env
       OTEL_SERVICE_NAME: django-thumbnail-app
     depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
+      <<: *app-depends
+      init:
+        condition: service_completed_successfully
 
   worker:
-    build: .
+    profiles: [app]
+    image: django-thumbnail-app
     volumes:
       - ./django_thumbnail:/app/django_thumbnail
-    command: uv run python -m celery -A django_thumbnail worker -l info
+    command: python -m celery -A django_thumbnail worker -l info
     environment:
-      DJANGO_SETTINGS_MODULE: django_thumbnail.settings.local
-      POSTGRES_HOST: db
-      REDIS_URL: redis://redis:6379/0
-      MINIO_ENDPOINT_URL: http://minio:9000
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+      <<: *app-env
       OTEL_SERVICE_NAME: django-thumbnail-worker
     depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
+      <<: *app-depends
+      init:
+        condition: service_completed_successfully
 
 volumes:
   postgres_data:

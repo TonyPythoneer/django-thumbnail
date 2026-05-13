@@ -10,7 +10,7 @@ RUN uv sync --frozen --no-dev
 COPY . .
 
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
 ENV PATH="/app/.venv/bin:$PATH"
 
 WORKDIR /app/django_thumbnail
-
