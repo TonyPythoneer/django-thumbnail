@@ -16,11 +16,6 @@
           ],
         },
       },
-      "on_save": {
-        "code_actions": {
-          "source.organizeImports.ruff": true,
-        },
-      },
     },
   },
   "lsp": {
