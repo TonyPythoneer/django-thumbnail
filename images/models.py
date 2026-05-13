@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import models
 
-from .utils import S3
+from .utils import internal_s3, public_s3
 
 
 class ImageStatus(models.TextChoices):
@@ -37,7 +37,7 @@ class Image(models.Model):
 
     def __str__(self) -> str:
         ts = self.created_at.strftime("%Y-%m-%d %H:%M:%S") if self.created_at else "?"
-        return f"{self.original_filename} ({self.user}) [{ts}]"
+        return f"{self.original_filename} ({self.user}) [{ts}] — {self.current_status()}"
 
     def latest_task(self) -> "ImageTask | None":
         return self.tasks.order_by("-created_at").first()
@@ -72,12 +72,12 @@ class Image(models.Model):
         )
 
     def upload_original(self, data: io.BytesIO) -> None:
-        S3.upload(settings.AWS_STORAGE_BUCKET_NAME, self.original_key, data)
+        internal_s3.upload(settings.AWS_STORAGE_BUCKET_NAME, self.original_key, data)
 
     def delete_from_storage(self) -> None:
         for key in [self.original_key, self.thumbnail_key]:
             if key:
-                S3.delete(settings.AWS_STORAGE_BUCKET_NAME, key)
+                internal_s3.delete(settings.AWS_STORAGE_BUCKET_NAME, key)
 
     def to_dict(self) -> dict:
 
@@ -85,7 +85,8 @@ class Image(models.Model):
             "id": str(self.id),
             "original_filename": self.original_filename,
             "status": self.current_status(),
-            "thumbnail_url": S3.presign_preview_url(self),
+            "thumbnail_url": public_s3.presign_get(self.thumbnail_key) if self.thumbnail_key else None,
+            "original_url": public_s3.presign_get(self.original_key) if self.original_key else None,
             "created_at": self.created_at.isoformat(),
         }
 
@@ -142,7 +143,7 @@ class ImageTask(models.Model):
             "image_id": str(self.image_id),
             "status": self.status,
             "error_message": self.error_message,
-            "thumbnail_url": S3.presign_preview_url(self.image)
-            if self.status == ImageStatus.DONE
+            "thumbnail_url": public_s3.presign_get(self.image.thumbnail_key)
+            if self.status == ImageStatus.DONE and self.image.thumbnail_key
             else None,
         }

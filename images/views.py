@@ -12,7 +12,7 @@ from django.views.decorators.http import require_http_methods
 
 from .forms import LoginForm, UploadForm
 from .models import Image, ImageStatus, ImageTask
-from .utils import S3, login_required_json
+from .utils import internal_s3, login_required_json, public_s3
 
 
 # ---------- Images ----------
@@ -34,7 +34,7 @@ def images_list(request: HttpRequest) -> JsonResponse:
                 {"error": "filename required"}, status=HTTPStatus.BAD_REQUEST
             )
         image = Image.create_with_key(request.user, filename)
-        presign_url = S3.presign_upload_url(image)
+        presign_url = public_s3.presign_put(image.original_key)
         return JsonResponse(
             {"image_id": str(image.id), "upload_url": presign_url},
             status=HTTPStatus.CREATED,
@@ -167,8 +167,9 @@ def gallery(request: HttpRequest):
                 "original_filename": img.original_filename,
                 "status": task.status if task else ImageStatus.PENDING,
                 "task_id": str(task.id) if task else "",
-                "thumbnail_url": S3.presign_preview_url(img)
-                if task and task.status == ImageStatus.DONE
+                "original_url": public_s3.presign_get(img.original_key) if img.original_key else None,
+                "thumbnail_url": public_s3.presign_get(img.thumbnail_key)
+                if task and task.status == ImageStatus.DONE and img.thumbnail_key
                 else None,
                 "created_at": img.created_at,
             }

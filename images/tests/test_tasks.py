@@ -17,8 +17,8 @@ class TestGenerateThumbnail:
         task = ImageTaskFactory()
         buf = make_image_buf()
         with (
-            patch("images.tasks.S3.download", return_value=buf),
-            patch("images.tasks.S3.upload") as mock_upload,
+            patch("images.tasks.internal_s3.download", return_value=buf),
+            patch("images.tasks.internal_s3.upload") as mock_upload,
         ):
             generate_thumbnail(str(task.id))
         task.refresh_from_db()
@@ -28,7 +28,7 @@ class TestGenerateThumbnail:
     def test_invalid_image_marks_failed(self):
         task = ImageTaskFactory()
         bad_buf = io.BytesIO(b"not an image")
-        with patch("images.tasks.S3.download", return_value=bad_buf):
+        with patch("images.tasks.internal_s3.download", return_value=bad_buf):
             generate_thumbnail(str(task.id))
         task.refresh_from_db()
         assert task.status == ImageStatus.FAILED
@@ -37,7 +37,7 @@ class TestGenerateThumbnail:
     def test_s3_error_marks_failed(self):
         task = ImageTaskFactory()
         with patch(
-            "images.tasks.S3.download", side_effect=Exception("connection refused")
+            "images.tasks.internal_s3.download", side_effect=Exception("connection refused")
         ):
             with pytest.raises(Exception):
                 generate_thumbnail(str(task.id))
@@ -48,8 +48,8 @@ class TestGenerateThumbnail:
         task = ImageTaskFactory()
         buf = make_image_buf()
         with (
-            patch("images.tasks.S3.download", return_value=buf),
-            patch("images.tasks.S3.upload") as mock_upload,
+            patch("images.tasks.internal_s3.download", return_value=buf),
+            patch("images.tasks.internal_s3.upload") as mock_upload,
         ):
             generate_thumbnail(str(task.id))
         args = mock_upload.call_args[0]

@@ -10,7 +10,7 @@ from PIL import Image as PILImage
 
 from images.models import Image, ImageTask
 from images.tasks import generate_thumbnail
-from images.utils import S3
+from images.utils import public_s3
 
 
 class Command(BaseCommand):
@@ -35,7 +35,7 @@ class Command(BaseCommand):
             # Create image record + presigned upload URL
             self.stdout.write("--- create image record ---")
             image = Image.create_with_key(user, "smoke.jpg")
-            upload_url = S3.presign_upload_url(image)
+            upload_url = public_s3.presign_put(image.original_key)
             self.stdout.write(
                 json.dumps(
                     {"image_id": str(image.id), "upload_url": upload_url}, indent=2

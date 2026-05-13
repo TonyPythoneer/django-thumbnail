@@ -1,5 +1,5 @@
-from pathlib import Path
 import os
+from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -93,15 +93,14 @@ STORAGES = {
     "default": {"BACKEND": "storages.backends.s3boto3.S3Boto3Storage"},
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
-AWS_ACCESS_KEY_ID = os.environ.get("MINIO_ACCESS_KEY", "minioadmin")
-AWS_SECRET_ACCESS_KEY = os.environ.get("MINIO_SECRET_KEY", "minioadmin")
-AWS_STORAGE_BUCKET_NAME = os.environ.get("MINIO_BUCKET_NAME", "thumbnails")
-AWS_S3_ENDPOINT_URL = os.environ.get("MINIO_ENDPOINT_URL", "http://localhost:9000")
-AWS_S3_CUSTOM_DOMAIN = None
-MINIO_PUBLIC_ENDPOINT_URL = os.environ.get(
-    "MINIO_PUBLIC_ENDPOINT_URL", AWS_S3_ENDPOINT_URL
+AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID", "minioadmin")
+AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "minioadmin")
+AWS_STORAGE_BUCKET_NAME = os.environ.get("AWS_STORAGE_BUCKET_NAME", "thumbnails")
+AWS_S3_ENDPOINT_URL = os.environ.get("AWS_S3_ENDPOINT_URL", "http://localhost:9000")
+AWS_S3_PUBLIC_ENDPOINT_URL = os.environ.get(
+    "AWS_S3_PUBLIC_ENDPOINT_URL", AWS_S3_ENDPOINT_URL
 )
-AWS_S3_SIGNATURE_VERSION = "s3v4"
+AWS_S3_PUBLIC_SIGNATURE_VERSION = "s3v4"  # minio requires s3v4
 AWS_S3_ADDRESSING_STYLE = "path"
 AWS_DEFAULT_ACL = None
 AWS_QUERYSTRING_AUTH = True

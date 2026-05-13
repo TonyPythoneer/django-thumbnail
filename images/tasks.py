@@ -7,7 +7,7 @@ from django_thumbnail.telemetry import get_tracer
 from PIL import Image as PillowImage
 
 from .models import Image, ImageTask
-from .utils import S3
+from .utils import internal_s3
 
 THUMBNAIL_SIZE = (20, 20)
 
@@ -23,10 +23,10 @@ class Outcome(StrEnum):
 
 
 def _process_thumbnail(bucket: str, image: Image) -> None:
-    buf = S3.download(bucket, image.original_key)
+    buf = internal_s3.download(bucket, image.original_key)
     _validate_image_buffer(buf)
     out = _create_thumbnail_buffer(buf)
-    S3.upload(bucket, image.thumbnail_key, out)
+    internal_s3.upload(bucket, image.thumbnail_key, out)
 
 
 def _validate_image_buffer(buf: io.BytesIO) -> None:

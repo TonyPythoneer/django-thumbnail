@@ -19,10 +19,10 @@ MOCK_PRESIGN = "http://minio/presigned-url"
 @pytest.fixture(autouse=True)
 def mock_s3():
     with (
-        patch("images.utils.S3.presign_upload_url", return_value=MOCK_PRESIGN),
-        patch("images.utils.S3.presign_preview_url", return_value=MOCK_PRESIGN),
-        patch("images.utils.S3.delete"),
-        patch("images.utils.S3.upload"),
+        patch("images.utils.public_s3.presign_put", return_value=MOCK_PRESIGN),
+        patch("images.utils.public_s3.presign_get", return_value=MOCK_PRESIGN),
+        patch("images.utils.internal_s3.delete"),
+        patch("images.utils.internal_s3.upload"),
     ):
         yield
 
@@ -121,8 +121,8 @@ class TestTasksAPI:
         client, user = auth_client
         image = ImageFactory(user=user)
         with (
-            patch("images.tasks.S3.download") as mock_dl,
-            patch("images.tasks.S3.upload"),
+            patch("images.tasks.internal_s3.download") as mock_dl,
+            patch("images.tasks.internal_s3.upload"),
         ):
             mock_dl.return_value = make_image_buf()
             resp = client.post(

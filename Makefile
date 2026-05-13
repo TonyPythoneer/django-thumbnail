@@ -39,7 +39,7 @@ worker:             ## Run Celery worker (local, with OTel)
 		$(PYTHON_CMD) -m celery -A $(PROJECT) worker -l $(CELERY_LOG_LEVEL)
 
 shell:              ## Django shell
-	$(MANAGE_PY) shell
+	$(DJANGO_SETTINGS_LOCAL) $(MANAGE_PY) shell
 
 # ============================================================
 # Database
