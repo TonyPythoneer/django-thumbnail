@@ -89,7 +89,6 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/"
 
-# MinIO / S3 storage (Django 5+ STORAGES dict — DEFAULT_FILE_STORAGE deprecated)
 STORAGES = {
     "default": {"BACKEND": "storages.backends.s3boto3.S3Boto3Storage"},
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
@@ -99,19 +98,14 @@ AWS_SECRET_ACCESS_KEY = os.environ.get("MINIO_SECRET_KEY", "minioadmin")
 AWS_STORAGE_BUCKET_NAME = os.environ.get("MINIO_BUCKET_NAME", "thumbnails")
 AWS_S3_ENDPOINT_URL = os.environ.get("MINIO_ENDPOINT_URL", "http://localhost:9000")
 AWS_S3_CUSTOM_DOMAIN = None
-# Separate endpoint for presigned URLs — must be reachable from the client (browser/curl).
-# In Docker, AWS_S3_ENDPOINT_URL uses the internal hostname (minio:9000) for server-to-server
-# calls, but presigned URLs must use the public hostname (localhost:9000) so clients can reach it.
 MINIO_PUBLIC_ENDPOINT_URL = os.environ.get(
     "MINIO_PUBLIC_ENDPOINT_URL", AWS_S3_ENDPOINT_URL
 )
-# MinIO requires Signature V4 — boto3 defaults to V2 which MinIO rejects with 403.
 AWS_S3_SIGNATURE_VERSION = "s3v4"
 AWS_S3_ADDRESSING_STYLE = "path"
 AWS_DEFAULT_ACL = None
 AWS_QUERYSTRING_AUTH = True
 
-# OpenTelemetry
 OTEL_EXPORTER_OTLP_ENDPOINT = os.environ.get(
     "OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317"
 )

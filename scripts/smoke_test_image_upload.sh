@@ -1,6 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
+python3() { uv run python3 "$@"; }
+
 BASE_URL="${BASE_URL:-http://localhost:8000}"
 USERNAME="${USERNAME:-test1@example.com}"
 PASSWORD="${PASSWORD:-test1}"

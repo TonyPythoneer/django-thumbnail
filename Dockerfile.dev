@@ -1,0 +1,16 @@
+# Dev-only image for docker-compose.
+# Installs deps into /venv (outside /app) so that mounting the project root
+# at /app does not overwrite the virtualenv.
+FROM python:3.14-slim
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+WORKDIR /app
+
+COPY pyproject.toml uv.lock ./
+RUN UV_PROJECT_ENVIRONMENT=/venv uv sync --frozen
+
+ENV VIRTUAL_ENV=/venv
+ENV PATH="/venv/bin:$PATH"
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1

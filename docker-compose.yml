@@ -71,10 +71,12 @@ services:
   # ── App (profile: app) ───────────────────────────────────────
   init:
     profiles: [app]
-    build: .                     # build once, tag as django-thumbnail-app
-    image: django-thumbnail-app  # web/worker reuse this image, no rebuild
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: django-thumbnail-dev  # web/worker reuse this image, no rebuild
     volumes:
-      - ./django_thumbnail:/app/django_thumbnail
+      - .:/app
     command: >
       sh -c "python manage.py migrate --noinput &&
              python manage.py create_bucket &&
@@ -86,9 +88,9 @@ services:
 
   web:
     profiles: [app]
-    image: django-thumbnail-app
+    image: django-thumbnail-dev
     volumes:
-      - ./django_thumbnail:/app/django_thumbnail
+      - .:/app
     command: python manage.py runserver 0.0.0.0:8000
     ports:
       - "8000:8000"
@@ -102,9 +104,9 @@ services:
 
   worker:
     profiles: [app]
-    image: django-thumbnail-app
+    image: django-thumbnail-dev
     volumes:
-      - ./django_thumbnail:/app/django_thumbnail
+      - .:/app
     command: python -m celery -A django_thumbnail worker -l info
     environment:
       <<: *app-env

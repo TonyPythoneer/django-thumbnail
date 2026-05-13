@@ -5,7 +5,7 @@
 # ============================================================
 PROJECT          = django_thumbnail
 PYTHON_CMD       = uv run python
-MANAGE_PY        = $(PYTHON_CMD) $(PROJECT)/manage.py
+MANAGE_PY        = $(PYTHON_CMD) manage.py
 DJANGO_SETTINGS_LOCAL = DJANGO_SETTINGS_MODULE=$(PROJECT).settings.local
 DJANGO_SETTINGS_TEST  = DJANGO_SETTINGS_MODULE=$(PROJECT).settings.test
 
@@ -35,7 +35,7 @@ dev:                ## Run Django dev server (local, with OTel)
 	$(DJANGO_SETTINGS_LOCAL) OTEL_SERVICE_NAME=$(OTEL_SVC_DJANGO_APP) $(MANAGE_PY) runserver
 
 worker:             ## Run Celery worker (local, with OTel)
-	cd $(PROJECT) && $(DJANGO_SETTINGS_LOCAL) OTEL_SERVICE_NAME=$(OTEL_SVC_DJANGO_WORKER) \
+	$(DJANGO_SETTINGS_LOCAL) OTEL_SERVICE_NAME=$(OTEL_SVC_DJANGO_WORKER) \
 		$(PYTHON_CMD) -m celery -A $(PROJECT) worker -l $(CELERY_LOG_LEVEL)
 
 shell:              ## Django shell

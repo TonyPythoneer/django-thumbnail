@@ -43,4 +43,3 @@ jobs:
         env:
           DJANGO_SETTINGS_MODULE: django_thumbnail.settings.test
         run: uv run pytest
-        working-directory: django_thumbnail
