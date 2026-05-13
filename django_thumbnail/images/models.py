@@ -125,7 +125,9 @@ class ImageTask(models.Model):
 
     @classmethod
     def create_and_dispatch(cls, image: "Image") -> "ImageTask":
-        from .tasks import generate_thumbnail  # local import: tasks.py imports ImageTask from models.py (circular)
+        from .tasks import (
+            generate_thumbnail,
+        )  # local import: tasks.py imports ImageTask from models.py (circular)
 
         task = cls.objects.create(image=image)
         async_result = generate_thumbnail.delay(str(task.id))

@@ -3,7 +3,9 @@ import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-dev-only-change-in-production")
+SECRET_KEY = os.environ.get(
+    "SECRET_KEY", "django-insecure-dev-only-change-in-production"
+)
 
 DEBUG = False
 
@@ -66,7 +68,9 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
+    },
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
@@ -98,7 +102,9 @@ AWS_S3_CUSTOM_DOMAIN = None
 # Separate endpoint for presigned URLs — must be reachable from the client (browser/curl).
 # In Docker, AWS_S3_ENDPOINT_URL uses the internal hostname (minio:9000) for server-to-server
 # calls, but presigned URLs must use the public hostname (localhost:9000) so clients can reach it.
-MINIO_PUBLIC_ENDPOINT_URL = os.environ.get("MINIO_PUBLIC_ENDPOINT_URL", AWS_S3_ENDPOINT_URL)
+MINIO_PUBLIC_ENDPOINT_URL = os.environ.get(
+    "MINIO_PUBLIC_ENDPOINT_URL", AWS_S3_ENDPOINT_URL
+)
 # MinIO requires Signature V4 — boto3 defaults to V2 which MinIO rejects with 403.
 AWS_S3_SIGNATURE_VERSION = "s3v4"
 AWS_S3_ADDRESSING_STYLE = "path"
@@ -106,6 +112,8 @@ AWS_DEFAULT_ACL = None
 AWS_QUERYSTRING_AUTH = True
 
 # OpenTelemetry
-OTEL_EXPORTER_OTLP_ENDPOINT = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
+OTEL_EXPORTER_OTLP_ENDPOINT = os.environ.get(
+    "OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317"
+)
 OTEL_SERVICE_NAME = os.environ.get("OTEL_SERVICE_NAME", "django-thumbnail")
 OTEL_SDK_DISABLED = os.environ.get("OTEL_SDK_DISABLED", "false").lower() == "true"

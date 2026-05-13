@@ -24,8 +24,12 @@ class ImageFactory(factory.django.DjangoModelFactory):
 
     user = factory.SubFactory(UserFactory)
     original_filename = factory.Faker("file_name", extension="jpg")
-    original_key = factory.LazyAttribute(lambda o: Image.format_key(o.user.id, uuid.uuid4(), o.original_filename))
-    thumbnail_key = factory.LazyAttribute(lambda o: Image.format_thumbnail_key_from_original(o.original_key))
+    original_key = factory.LazyAttribute(
+        lambda o: Image.format_key(o.user.id, uuid.uuid4(), o.original_filename)
+    )
+    thumbnail_key = factory.LazyAttribute(
+        lambda o: Image.format_thumbnail_key_from_original(o.original_key)
+    )
 
 
 class ImageTaskFactory(factory.django.DjangoModelFactory):

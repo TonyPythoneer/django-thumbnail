@@ -66,12 +66,21 @@ def validate_skill(skill_path):
     if name:
         # Check naming convention (hyphen-case: lowercase with hyphens)
         if not re.match(r"^[a-z0-9-]+$", name):
-            return False, f"Name '{name}' should be hyphen-case (lowercase letters, digits, and hyphens only)"
+            return (
+                False,
+                f"Name '{name}' should be hyphen-case (lowercase letters, digits, and hyphens only)",
+            )
         if name.startswith("-") or name.endswith("-") or "--" in name:
-            return False, f"Name '{name}' cannot start/end with hyphen or contain consecutive hyphens"
+            return (
+                False,
+                f"Name '{name}' cannot start/end with hyphen or contain consecutive hyphens",
+            )
         # Check name length (max 64 characters per spec)
         if len(name) > 64:
-            return False, f"Name is too long ({len(name)} characters). Maximum is 64 characters."
+            return (
+                False,
+                f"Name is too long ({len(name)} characters). Maximum is 64 characters.",
+            )
 
     # Extract and validate description
     description = frontmatter.get("description", "")
@@ -84,7 +93,10 @@ def validate_skill(skill_path):
             return False, "Description cannot contain angle brackets (< or >)"
         # Check description length (max 1024 characters per spec)
         if len(description) > 1024:
-            return False, f"Description is too long ({len(description)} characters). Maximum is 1024 characters."
+            return (
+                False,
+                f"Description is too long ({len(description)} characters). Maximum is 1024 characters.",
+            )
 
     return True, "Skill is valid!"
 

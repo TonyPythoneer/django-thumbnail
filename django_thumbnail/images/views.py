@@ -25,13 +25,20 @@ def images_list(request: HttpRequest) -> JsonResponse:
         try:
             body = json.loads(request.body or b"{}")
         except json.JSONDecodeError:
-            return JsonResponse({"error": "invalid json"}, status=HTTPStatus.BAD_REQUEST)
+            return JsonResponse(
+                {"error": "invalid json"}, status=HTTPStatus.BAD_REQUEST
+            )
         filename = body.get("filename")
         if not filename:
-            return JsonResponse({"error": "filename required"}, status=HTTPStatus.BAD_REQUEST)
+            return JsonResponse(
+                {"error": "filename required"}, status=HTTPStatus.BAD_REQUEST
+            )
         image = Image.create_with_key(request.user, filename)
         presign_url = S3.presign_upload_url(image)
-        return JsonResponse({"image_id": str(image.id), "upload_url": presign_url}, status=HTTPStatus.CREATED)
+        return JsonResponse(
+            {"image_id": str(image.id), "upload_url": presign_url},
+            status=HTTPStatus.CREATED,
+        )
 
     qs = Image.objects.for_user(request.user)
     return JsonResponse({"images": [i.to_dict() for i in qs]})
@@ -154,14 +161,18 @@ def gallery(request: HttpRequest):
     rows = []
     for img in images_qs:
         task = img.latest_task()
-        rows.append({
-            "id": str(img.id),
-            "original_filename": img.original_filename,
-            "status": task.status if task else ImageStatus.PENDING,
-            "task_id": str(task.id) if task else "",
-            "thumbnail_url": S3.presign_preview_url(img) if task and task.status == ImageStatus.DONE else None,
-            "created_at": img.created_at,
-        })
+        rows.append(
+            {
+                "id": str(img.id),
+                "original_filename": img.original_filename,
+                "status": task.status if task else ImageStatus.PENDING,
+                "task_id": str(task.id) if task else "",
+                "thumbnail_url": S3.presign_preview_url(img)
+                if task and task.status == ImageStatus.DONE
+                else None,
+                "created_at": img.created_at,
+            }
+        )
     return render(request, "images/gallery.html", {"images": rows})
 
 

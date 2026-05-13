@@ -13,7 +13,5 @@ class Command(BaseCommand):
         ImageTask.objects.all().delete()
 
         self.stdout.write(
-            self.style.SUCCESS(
-                f"✓ Cleared {img_count} images, {task_count} tasks"
-            )
+            self.style.SUCCESS(f"✓ Cleared {img_count} images, {task_count} tasks")
         )

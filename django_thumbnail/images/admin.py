@@ -5,7 +5,13 @@ from .models import Image, ImageTask
 class ImageTaskInline(admin.TabularInline):
     model = ImageTask
     extra = 0
-    readonly_fields = ("celery_task_id", "status", "error_message", "created_at", "updated_at")
+    readonly_fields = (
+        "celery_task_id",
+        "status",
+        "error_message",
+        "created_at",
+        "updated_at",
+    )
 
 
 @admin.register(Image)
