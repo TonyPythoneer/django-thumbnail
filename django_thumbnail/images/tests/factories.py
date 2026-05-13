@@ -12,10 +12,17 @@ USER_PLAIN_PASSWORD = "password"
 class UserFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = User
+        skip_postgeneration_save = True
 
     username = factory.Faker("email")
     email = factory.LazyAttribute(lambda o: o.username)
-    password = factory.PostGenerationMethodCall("set_password", USER_PLAIN_PASSWORD)
+
+    @factory.post_generation
+    def password(self, create, extracted, **kwargs):
+        pwd = extracted or USER_PLAIN_PASSWORD
+        self.set_password(pwd)
+        if create:
+            self.save(update_fields=["password"])
 
 
 class ImageFactory(factory.django.DjangoModelFactory):
