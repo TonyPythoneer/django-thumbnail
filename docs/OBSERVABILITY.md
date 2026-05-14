@@ -112,14 +112,18 @@ BotocoreInstrumentor().instrument()
 
 **What we saw.** Jaeger's service dropdown listed one service. Spans from both the web process and the worker were tagged identically, making it hard to read the trace.
 
-**Fix.** Set `OTEL_SERVICE_NAME` per process in the `Makefile`:
+**Fix.** Set `OTEL_SERVICE_NAME` per process in `docker-compose.yml`:
 
-```makefile
-dev:
-	$(DJANGO_ENV) OTEL_SERVICE_NAME=django-thumbnail-app $(MANAGE) runserver
+```yaml
+  web:
+    environment:
+      <<: *app-env
+      OTEL_SERVICE_NAME: django-thumbnail-app
 
-worker:
-	cd django_thumbnail && $(DJANGO_ENV) OTEL_SERVICE_NAME=django-thumbnail-worker uv run celery -A django_thumbnail worker -l info
+  worker:
+    environment:
+      <<: *app-env
+      OTEL_SERVICE_NAME: django-thumbnail-worker
 ```
 
 `base.py` reads `OTEL_SERVICE_NAME` from the environment and passes it into the `Resource` attached to the `TracerProvider`. Two distinct `service.name` resources, one shared trace.

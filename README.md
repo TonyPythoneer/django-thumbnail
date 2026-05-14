@@ -40,7 +40,7 @@ Thumbnails served via short-lived S3 pre-signed URLs scoped per-user. No anonymo
 |---|---|
 | Web | Django 6, `django-bootstrap5` |
 | Async | Celery + Redis broker, `@shared_task` |
-| Storage | `django-storages[s3]` + boto3 → MinIO (S3-compatible) |
+| Storage | `boto3` → MinIO (S3-compatible) |
 | Database | PostgreSQL 17 |
 | Tracing | OpenTelemetry SDK → OTLP gRPC → Jaeger all-in-one |
 | Tooling | `uv`, `ruff`, `pytest-django`, `factory-boy` |
@@ -51,15 +51,17 @@ Thumbnails served via short-lived S3 pre-signed URLs scoped per-user. No anonymo
 ## Quick start
 
 ```bash
-make up        # postgres + redis + minio + jaeger
-make migrate
-make dev       # terminal 1 — Django on :8000
-make worker    # terminal 2 — Celery worker
-make smoke     # upload → dispatch → poll status
+make up        # build + start full stack: db, redis, minio, jaeger, web (:8000), worker
+make smoke     # upload → dispatch → poll status (requires the stack from `make up`)
 
 open http://localhost:16686   # Jaeger UI — full nested trace
 open http://localhost:8000    # login as test1@example.com / test1
 ```
+
+`make up` builds the app image and runs the `init` container — migrations, MinIO
+bucket creation, and test-account seeding — then starts the web and worker
+containers. `make up-infra` starts infra only; `make down` stops everything;
+`make logs-app` / `make logs-infra` tail logs.
 
 Test accounts seeded automatically: `test1@example.com` / `test1`, `test2@example.com` / `test2`.
 
@@ -68,23 +70,26 @@ Test accounts seeded automatically: `test1@example.com` / `test1`, `test2@exampl
 ## Repository layout
 
 ```
-django_thumbnail/
+django-thumbnail/
+├── manage.py
+├── Makefile · docker-compose.yml · Dockerfile.dev · pyproject.toml
 ├── django_thumbnail/
 │   ├── settings/
 │   │   ├── base.py          env-driven config
 │   │   ├── local.py
-│   │   └── test.py          InMemoryStorage + eager Celery
-│   ├── celery.py
+│   │   └── test.py          eager Celery, OTel disabled
+│   ├── celery.py            Celery app + worker telemetry signal
 │   └── telemetry.py         OTel TracerProvider setup
-└── images/                  the only app
-    ├── models.py            Image, ImageTask, ImageStatus
-    ├── tasks.py             generate_thumbnail (idempotent, retrying)
-    ├── apps.py              Django+Celery+Botocore instrumentor wiring
-    ├── utils.py             S3 helper (direct put/get, no s3transfer threads)
-    ├── views.py             plain JsonResponse, @login_required
-    └── tests/               pytest-django + factory-boy
-docs/OBSERVABILITY.md        ★ the trace-stitching post-mortem
-.github/workflows/ci.yml     lint + pytest on Postgres service
+├── images/                  the only app
+│   ├── models.py            Image, ImageTask, ImageStatus
+│   ├── tasks.py             generate_thumbnail (idempotent, retrying)
+│   ├── apps.py              Django app config
+│   ├── utils.py             S3 helpers (direct put/get, no s3transfer threads)
+│   ├── views.py             plain JsonResponse, @login_required
+│   ├── management/commands/ create_bucket, create_test_users, clean_*, ...
+│   └── tests/               pytest-django + factory-boy
+├── docs/OBSERVABILITY.md    ★ the trace-stitching post-mortem
+└── .github/workflows/       ci-app-integration-test.yml, ci-smoke-test.yml
 ```
 
 ---
@@ -102,5 +107,5 @@ docs/OBSERVABILITY.md        ★ the trace-stitching post-mortem
 ## Further reading
 
 - [`docs/OBSERVABILITY.md`](docs/OBSERVABILITY.md) — five symptoms, five root causes, one working distributed trace
-- [`tasks/THUMBNAIL_WORKER.md`](tasks/THUMBNAIL_WORKER.md) — phased build log
+- [`tasks/refinement/`](tasks/refinement/) — refinement plan & numbered checklists
 - [`CLAUDE.md`](CLAUDE.md) — context for AI-assisted development
