@@ -1,0 +1,12 @@
+{
+  "venvPath": ".",
+  "venv": ".venv",
+  "pythonVersion": "3.14",
+  "djangoStubsSource": "django-stubs",
+  "executionEnvironments": [
+    {
+      "root": "django_thumbnail",
+      "extraPaths": ["django_thumbnail"]
+    }
+  ]
+}

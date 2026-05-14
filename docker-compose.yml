@@ -1,0 +1,149 @@
+# ── Shared env (app containers) ──────────────────────────────
+x-app-env: &app-env # Application
+  DJANGO_SETTINGS_MODULE: django_thumbnail.settings.local
+
+  # Database
+  POSTGRES_HOST: db
+
+  # Celery
+  REDIS_URL: redis://redis:6379/0
+
+  # S3 / MinIO
+  AWS_ACCESS_KEY_ID: minioadmin
+  AWS_SECRET_ACCESS_KEY: minioadmin
+  AWS_STORAGE_BUCKET_NAME: thumbnails
+  AWS_S3_ENDPOINT_URL: http://minio:9000
+  AWS_S3_PUBLIC_ENDPOINT_URL: http://localhost:9000
+
+  # OpenTelemetry
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+  OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+  OTEL_TRACES_EXPORTER: otlp
+  OTEL_METRICS_EXPORTER: none
+  OTEL_LOGS_EXPORTER: none
+
+x-app-depends: &app-depends
+  db:
+    condition: service_healthy
+  redis:
+    condition: service_healthy
+  minio:
+    condition: service_healthy
+
+services:
+  # ── Infra (always up) ────────────────────────────────────────
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: django_thumbnail
+      POSTGRES_USER: django_thumbnail
+      POSTGRES_PASSWORD: django_thumbnail
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U django_thumbnail"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686" # Jaeger UI
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000" # S3 API
+      - "9001:9001" # MinIO Console UI
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── App (profile: app) ───────────────────────────────────────
+  init:
+    profiles: [app]
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: django-thumbnail-dev # web/worker reuse this image, no rebuild
+    volumes:
+      - .:/app
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py create_bucket &&
+             python manage.py create_test_users"
+    environment:
+      <<: *app-env
+    depends_on:
+      <<: *app-depends
+
+  web:
+    profiles: [app]
+    image: django-thumbnail-dev
+    volumes:
+      - .:/app
+    command: python manage.py runserver 0.0.0.0:8000
+    ports:
+      - "8000:8000"
+    environment:
+      <<: *app-env
+      OTEL_SERVICE_NAME: django-thumbnail-app
+    depends_on:
+      <<: *app-depends
+      init:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/')",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  worker:
+    profiles: [app]
+    image: django-thumbnail-dev
+    volumes:
+      - .:/app
+    command: python -m celery -A django_thumbnail worker -l info
+    environment:
+      <<: *app-env
+      OTEL_SERVICE_NAME: django-thumbnail-worker
+    depends_on:
+      <<: *app-depends
+      init:
+        condition: service_completed_successfully
+
+volumes:
+  postgres_data:
+  minio_data:

@@ -1,0 +1,42 @@
+{
+  "languages": {
+    "Python": {
+      "language_servers": ["pyright", "ruff"],
+      "format_on_save": "on",
+      "formatter": {
+        "external": {
+          "command": "uv",
+          "arguments": [
+            "run",
+            "ruff",
+            "format",
+            "--stdin-filename",
+            "{buffer_path}",
+            "-",
+          ],
+        },
+      },
+    },
+  },
+  "lsp": {
+    "pyright": {
+      "settings": {
+        "python": {
+          "pythonPath": ".venv/bin/python",
+        },
+        "pyright": {
+          "plugins": {
+            "django-stubs": {
+              "django_settings_module": "django_thumbnail.settings.local",
+            },
+          },
+        },
+      },
+    },
+    "ruff": {
+      "settings": {
+        "interpreter": [".venv/bin/python"],
+      },
+    },
+  },
+}
