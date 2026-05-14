@@ -12,8 +12,7 @@ from django.views.decorators.http import require_http_methods
 
 from .forms import LoginForm, UploadForm
 from .models import Image, ImageStatus, ImageTask
-from .utils import internal_s3, login_required_json, public_s3
-
+from .utils import login_required_json, public_s3
 
 # ---------- Images ----------
 
@@ -167,7 +166,9 @@ def gallery(request: HttpRequest):
                 "original_filename": img.original_filename,
                 "status": task.status if task else ImageStatus.PENDING,
                 "task_id": str(task.id) if task else "",
-                "original_url": public_s3.presign_get(img.original_key) if img.original_key else None,
+                "original_url": public_s3.presign_get(img.original_key)
+                if img.original_key
+                else None,
                 "thumbnail_url": public_s3.presign_get(img.thumbnail_key)
                 if task and task.status == ImageStatus.DONE and img.thumbnail_key
                 else None,

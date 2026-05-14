@@ -37,7 +37,9 @@ class Image(models.Model):
 
     def __str__(self) -> str:
         ts = self.created_at.strftime("%Y-%m-%d %H:%M:%S") if self.created_at else "?"
-        return f"{self.original_filename} ({self.user}) [{ts}] — {self.current_status()}"
+        return (
+            f"{self.original_filename} ({self.user}) [{ts}] — {self.current_status()}"
+        )
 
     def latest_task(self) -> "ImageTask | None":
         return self.tasks.order_by("-created_at").first()
@@ -85,8 +87,12 @@ class Image(models.Model):
             "id": str(self.id),
             "original_filename": self.original_filename,
             "status": self.current_status(),
-            "thumbnail_url": public_s3.presign_get(self.thumbnail_key) if self.thumbnail_key else None,
-            "original_url": public_s3.presign_get(self.original_key) if self.original_key else None,
+            "thumbnail_url": public_s3.presign_get(self.thumbnail_key)
+            if self.thumbnail_key
+            else None,
+            "original_url": public_s3.presign_get(self.original_key)
+            if self.original_key
+            else None,
             "created_at": self.created_at.isoformat(),
         }
 
@@ -143,6 +149,8 @@ class ImageTask(models.Model):
             "image_id": str(self.image_id),
             "status": self.status,
             "error_message": self.error_message,
+            "original_key": self.image.original_key,
+            "thumbnail_key": self.image.thumbnail_key,
             "thumbnail_url": public_s3.presign_get(self.image.thumbnail_key)
             if self.status == ImageStatus.DONE and self.image.thumbnail_key
             else None,

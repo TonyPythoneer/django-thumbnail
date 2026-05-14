@@ -1,13 +1,17 @@
 import io
 from enum import StrEnum
+from typing import TYPE_CHECKING
 
 from celery import shared_task
 from django.conf import settings
-from django_thumbnail.telemetry import get_tracer
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
 from PIL import Image as PillowImage
 
-from .models import Image, ImageTask
 from .utils import internal_s3
+
+if TYPE_CHECKING:
+    from .models import Image
 
 THUMBNAIL_SIZE = (20, 20)
 
@@ -49,28 +53,39 @@ def _create_thumbnail_buffer(original_buffer: io.BytesIO) -> io.BytesIO:
 
 @shared_task(bind=True, max_retries=3)
 def generate_thumbnail(self, image_task_id: str) -> None:
-    with get_tracer().start_as_current_span(
-        "celery.task.generate_thumbnail",
-        attributes={"task_id": self.request.id or "", "image_task_id": image_task_id},
-    ) as span:
-        task = ImageTask.objects.select_related("image").get(id=image_task_id)
-        task.mark_processing(self.request.id or "")
-        span.set_attributes(
-            {
-                "image_id": str(task.image.id),
-                "user_id": str(task.image.user_id),
-                "image_name": task.image.original_filename,
-            }
-        )
+    from .models import ImageTask
 
-        try:
-            _process_thumbnail(settings.AWS_STORAGE_BUCKET_NAME, task.image)
-            task.mark_done()
-            span.set_attribute("status", Outcome.DONE)
-        except InvalidImageError:
-            task.mark_failed("invalid image file")
-            span.set_attribute("status", Outcome.INVALID)
-        except Exception as exc:
-            task.mark_failed(str(exc))
-            span.set_attribute("status", Outcome.RETRY)
-            raise self.retry(exc=exc, countdown=2**self.request.retries)
+    task = ImageTask.objects.select_related("image").get(id=image_task_id)
+    celery_id = self.request.id or ""
+    task.mark_processing(celery_id)
+
+    # tracing
+    span = trace.get_current_span()
+    span_attributes = {
+        "task_id": celery_id,
+        "image_task_id": image_task_id,
+        "image_id": str(task.image.id),
+        "user_id": str(task.image.user_id),
+        "image_name": task.image.original_filename,
+    }
+
+    try:
+        _process_thumbnail(settings.AWS_STORAGE_BUCKET_NAME, task.image)
+        task.mark_done()
+        span_attributes["status"] = Outcome.DONE
+    except InvalidImageError:
+        task.mark_failed("invalid image file")
+        span_attributes["status"] = Outcome.INVALID
+    except Exception as exc:
+        task.mark_failed(str(exc))
+        span_attributes["status"] = Outcome.RETRY
+        span.record_exception(exc)
+        raise self.retry(exc=exc, countdown=2**self.request.retries)
+    finally:
+        span.set_attributes(span_attributes)
+
+        # Celery prefork workers don't inherit the BSP exporter thread after fork.
+        # Force flush so spans reach Jaeger before the worker process idles.
+        provider = trace.get_tracer_provider()
+        if isinstance(provider, TracerProvider):
+            provider.force_flush()

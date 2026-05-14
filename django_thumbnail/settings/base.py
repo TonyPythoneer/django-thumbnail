@@ -3,6 +3,7 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
+# ── Security ─────────────────────────────────────────────────
 SECRET_KEY = os.environ.get(
     "SECRET_KEY", "django-insecure-dev-only-change-in-production"
 )
@@ -11,6 +12,7 @@ DEBUG = False
 
 ALLOWED_HOSTS: list[str] = []
 
+# ── Application ──────────────────────────────────────────────
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -51,6 +53,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "django_thumbnail.wsgi.application"
 
+# ── Database ─────────────────────────────────────────────────
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -62,11 +65,13 @@ DATABASES = {
     }
 }
 
+# ── Celery ───────────────────────────────────────────────────
 CELERY_BROKER_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 
+# ── Auth ─────────────────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
@@ -76,23 +81,22 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
+LOGIN_URL = "/login/"
+LOGIN_REDIRECT_URL = "/"
+
+# ── Internationalisation ──────────────────────────────────────
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
+# ── Static files ─────────────────────────────────────────────
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-LOGIN_URL = "/login/"
-LOGIN_REDIRECT_URL = "/"
-
-STORAGES = {
-    "default": {"BACKEND": "storages.backends.s3boto3.S3Boto3Storage"},
-    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
-}
+# ── S3 / MinIO ───────────────────────────────────────────────
 AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID", "minioadmin")
 AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "minioadmin")
 AWS_STORAGE_BUCKET_NAME = os.environ.get("AWS_STORAGE_BUCKET_NAME", "thumbnails")
@@ -105,8 +109,14 @@ AWS_S3_ADDRESSING_STYLE = "path"
 AWS_DEFAULT_ACL = None
 AWS_QUERYSTRING_AUTH = True
 
+# ── OpenTelemetry ─────────────────────────────────────────────
+OTEL_SDK_DISABLED = os.environ.get("OTEL_SDK_DISABLED", "false").lower() == "true"
+OTEL_SERVICE_NAME = os.environ.get("OTEL_SERVICE_NAME", "django-thumbnail")
 OTEL_EXPORTER_OTLP_ENDPOINT = os.environ.get(
     "OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317"
 )
-OTEL_SERVICE_NAME = os.environ.get("OTEL_SERVICE_NAME", "django-thumbnail")
-OTEL_SDK_DISABLED = os.environ.get("OTEL_SDK_DISABLED", "false").lower() == "true"
+
+# ── Smoke E2E endpoints for the real world ───────────────────
+#    Test external-facing services over the network (not via in-process Django).
+SMOKE_DJANGO_WEB_URL = os.environ.get("SMOKE_DJANGO_WEB_URL", "http://localhost:8000")
+SMOKE_JAEGER_BASE_URL = os.environ.get("SMOKE_JAEGER_BASE_URL", "http://localhost:16686")

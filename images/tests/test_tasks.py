@@ -37,7 +37,8 @@ class TestGenerateThumbnail:
     def test_s3_error_marks_failed(self):
         task = ImageTaskFactory()
         with patch(
-            "images.tasks.internal_s3.download", side_effect=Exception("connection refused")
+            "images.tasks.internal_s3.download",
+            side_effect=Exception("connection refused"),
         ):
             with pytest.raises(Exception):
                 generate_thumbnail(str(task.id))
@@ -54,5 +55,3 @@ class TestGenerateThumbnail:
             generate_thumbnail(str(task.id))
         args = mock_upload.call_args[0]
         assert args[1] == task.image.thumbnail_key
-
-

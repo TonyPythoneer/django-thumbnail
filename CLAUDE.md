@@ -72,7 +72,7 @@ django-thumbnail/
 - Owner isolation: always `Image.objects.for_user(request.user)` — never expose cross-user data
 - No DRF — plain `JsonResponse` + `@login_required`
 - Test accounts: `test1@example.com/test1`, `test2@example.com/test2` (permanent, no registration)
-- Thumbnail naming: `{stem}_thumbnail{ext}`, 300×300 preserving aspect ratio
+- Thumbnail naming: `{stem}_thumbnail{ext}`
 
 ---
 
