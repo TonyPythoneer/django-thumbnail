@@ -36,9 +36,10 @@ Smaller cleanups in `models.py` and `settings/base.py`. None are bugs; all are
 - [x] Audited `base.py`; no other dead settings spotted.
 
 ### Circular import
-- [x] Untangle cycle — fat-model kept; only one lazy import remains
-      (`create_and_dispatch` local-imports `generate_thumbnail`). `tasks.py` no
-      longer lazy-imports `ImageTask` (uses `TYPE_CHECKING` block).
+- [x] Untangle cycle — fat-model kept; only one runtime lazy import remains
+      (`models.py:create_and_dispatch` local-imports `generate_thumbnail`).
+      `tasks.py` now top-level imports `from .models import Image, ImageTask`
+      (no cycle since `models.py` top-level has no `tasks` dependency).
 - [x] Comment on remaining lazy import retained.
 
 ### `__str__` dedup
@@ -46,18 +47,24 @@ Smaller cleanups in `models.py` and `settings/base.py`. None are bugs; all are
       implementations use it.
 
 ### Serialization home
-- [ ] After **task 04** lands, confirm: is there exactly one discoverable place
-      that serializes `Image`? If `to_dict()` stays on the model, the gallery must
-      use it (or a sibling method on the model) — no anonymous inline dict.
+- [x] After **task 04** lands, confirm: is there exactly one discoverable place
+      that serializes `Image`? Resolved: two named helpers split by purpose —
+      `Image.to_dict()` for the JSON API (uses isoformat strings, no task_id) and
+      `views._gallery_row()` for the HTML template context (raw datetime,
+      conditional thumbnail, includes `task_id` for HTML polling). No anonymous
+      inline dicts remain; each shape has one obvious home.
 
 ## Acceptance
 
-- [ ] `grep -r AWS_S3_ADDRESSING_STYLE` (and the other two) returns only the
-      deletion — nothing consumed them.
-- [ ] At most one lazy/deferred import remains in the `models`/`tasks` pair, and it
-      is commented, or the cycle is gone entirely.
-- [ ] No duplicated timestamp-formatting code.
-- [ ] `make test` and `make lint` green.
+- [x] `grep -r AWS_S3_ADDRESSING_STYLE` (and the other two) returns no hits in any
+      `.py` / `.toml` / `.yml` / `.md` file — fully purged.
+- [x] At most one runtime lazy/deferred import remains in the `models`/`tasks`
+      pair: `models.py:142` (`from .tasks import generate_thumbnail` inside
+      `create_and_dispatch`), commented. `tasks.py` has zero lazy imports.
+- [x] No duplicated timestamp-formatting code — `_fmt_ts(dt)` helper at
+      `models.py:16` used by both `Image.__str__` and `ImageTask.__str__`.
+- [x] `make test` green (37 passed); `make check` clean (ruff + ruff format +
+      pyrefly).
 
 ## Readability guardrail
 

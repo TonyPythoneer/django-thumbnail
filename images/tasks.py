@@ -1,16 +1,13 @@
 import io
 from enum import StrEnum
-from typing import TYPE_CHECKING
 
 from celery import shared_task
 from django.conf import settings
 from opentelemetry import trace
 from PIL import Image as PillowImage
 
+from .models import Image, ImageTask
 from .storage import internal_s3
-
-if TYPE_CHECKING:
-    from .models import Image
 
 THUMBNAIL_SIZE = (20, 20)
 
@@ -48,8 +45,6 @@ def _make_thumbnail(buf: io.BytesIO) -> io.BytesIO:
 
 @shared_task(bind=True, max_retries=3)
 def generate_thumbnail(self, image_task_id: str) -> None:
-    from .models import ImageTask
-
     task = ImageTask.objects.select_related("image").get(id=image_task_id)
     celery_id = self.request.id or ""
     task.mark_processing(celery_id)
