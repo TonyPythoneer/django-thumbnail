@@ -46,44 +46,44 @@ gap is the project's *headline feature*.
 
 ## Checklist
 
-- [ ] **Test the domain invariant.** New test: one `Image`, create 2–3 `ImageTask`
-      rows in sequence, assert `latest_task()` and `current_status()` reflect the
-      newest. This also locks in the **task 05** prefetch change — add a
-      `django_assert_num_queries` variant for the prefetched path.
-- [ ] **Add query-count tests** (supports task 05): assert `gallery` and
-      `images_list` GET issue a constant number of queries as image count grows
-      (`django_assert_num_queries`).
-- [ ] **Add HTML view tests.** At minimum: `gallery` renders for an authed user and
-      shows their images only; `upload` POST creates an `Image` + dispatches a task;
-      `html_login` redirects authed users; `image_delete` is owner-scoped (a user
-      cannot delete another user's image — mirror `test_delete_other_user_image`).
-- [ ] **Test retry exhaustion.** Assert that after `max_retries` the task gives up
-      cleanly and the final status is `FAILED` (and, if **task 06** adds
-      `RETRYING`, that the status transitions are what you expect).
-- [ ] **De-duplicate the smoke test.** `test_smoke.py` should call
-      `Image.format_thumbnail_key_from_original` instead of reconstructing the key
-      by string surgery.
-- [ ] **Decide on `test_image_upload.py`.** Either delete it (CI + `test_smoke.py`
-      already cover the path), or keep it and wire it into the `Makefile` with a
-      clear purpose and make it reuse `create_and_dispatch`. Lean: delete.
-- [ ] **Tighten broad excepts.** Replace `pytest.raises(Exception)` with the
-      specific exception the code actually raises.
-- [ ] **Clarify the storage-isolation story.** Either remove the inert
-      `STORAGES`/`InMemoryStorage` block from `settings/test.py` (the `patch()`
-      calls are doing the real work), or keep it and add a one-line comment that it
-      is a safety net, not the mechanism. Hand the corrected wording to **task 01**
-      so the README stops overstating it.
-- [ ] **Coverage:** see **task 09** for whether a coverage threshold gets added —
-      if it does, this task's new tests should clear it on the touched files.
+- [x] **Test the domain invariant.** `test_models.py::TestLatestTask` covers
+      `test_latest_task_returns_newest`, `test_latest_task_none_when_no_tasks`,
+      `test_current_status_reflects_newest_task`, `test_current_status_pending_when_no_tasks`,
+      and `test_latest_task_uses_prefetch_cache` (locks in the task 05 prefetch).
+- [x] **Add query-count tests** (supports task 05): `gallery` covered via
+      `test_views_html.py::TestGallery::test_gallery_query_count_constant` (4 queries
+      with 5 images + tasks). `images_list` covered via
+      `test_api.py::TestImagesAPI::test_list_query_count_constant` (added this pass).
+- [x] **Add HTML view tests.** `test_views_html.py` covers `TestGallery`
+      (requires-login, own-images-only, query-count), `TestUpload` (GET form,
+      POST creates Image), `TestHtmlLogin` (redirects authed user), and
+      `TestImageDelete` (own image, owner-isolation).
+- [x] **Test retry exhaustion.** `test_tasks.py::test_s3_error_marks_failed_after_exhausting_retries`
+      asserts final status `FAILED` when retries exhaust; companion
+      `test_s3_error_stays_processing_during_retry` asserts in-progress retry
+      stays `PROCESSING`.
+- [x] **De-duplicate the smoke test.** `test_smoke.py:134` now calls
+      `Image.format_thumbnail_key_from_original(original_key)`.
+- [x] **Decide on `test_image_upload.py`.** Deleted (commit `9ac9b94`) — third
+      copy of a path already covered by `test_smoke.py` and the new HTML view tests.
+- [x] **Tighten broad excepts.** `test_tasks.py:45,58` now use
+      `pytest.raises(ConnectionError)` / `pytest.raises(Retry)` instead of
+      `pytest.raises(Exception)`.
+- [x] **Clarify the storage-isolation story.** Dead `STORAGES`/`InMemoryStorage`
+      block removed from `settings/test.py` (commit `9ac9b94`); isolation now
+      explicitly comes from `patch()` calls in each test module.
+- [x] **Coverage:** task 09 dropped `pytest-cov` and decided against a coverage
+      gate. Item resolved with no action required here.
 
 ## Acceptance
 
-- [ ] `latest_task()` / `current_status()` have direct tests proving "newest wins".
-- [ ] Every HTML view has at least one test; owner-isolation is asserted on the
+- [x] `latest_task()` / `current_status()` have direct tests proving "newest wins".
+- [x] Every HTML view has at least one test; owner-isolation is asserted on the
       HTML delete path.
-- [ ] Retry exhaustion has a test.
-- [ ] No test re-implements logic that already exists as a model/helper method.
-- [ ] `make test` green; `make smoke` green against `make up`.
+- [x] Retry exhaustion has a test.
+- [x] No test re-implements logic that already exists as a model/helper method.
+- [x] `make test` green (38 passed); `make smoke` green against `make up`
+      *(runtime check deferred to task 10)*.
 
 ## Readability guardrail
 

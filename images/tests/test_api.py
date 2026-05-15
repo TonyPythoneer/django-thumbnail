@@ -88,6 +88,16 @@ class TestImagesAPI:
         assert resp.status_code == HTTPStatus.OK
         assert len(resp.json()["images"]) == 2
 
+    def test_list_query_count_constant(self, auth_client, django_assert_num_queries):
+        client, user = auth_client
+        for _ in range(5):
+            img = ImageFactory(user=user)
+            ImageTaskFactory(image=img)
+        # Warm the response once so per-test setup (session/auth) is steady.
+        client.get(reverse(self.list_viewname))
+        with django_assert_num_queries(4):  # session + user + images + tasks prefetch
+            client.get(reverse(self.list_viewname))
+
     def test_delete_image(self, auth_client):
         client, user = auth_client
         image = ImageFactory(user=user)
