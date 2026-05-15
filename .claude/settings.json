@@ -83,6 +83,7 @@
     ]
   },
   "enabledPlugins": {
-    "python-engineering@jamie-bitflight-skills": true
+    "python-engineering@jamie-bitflight-skills": true,
+    "andrej-karpathy-skills@karpathy-skills": true
   }
 }
