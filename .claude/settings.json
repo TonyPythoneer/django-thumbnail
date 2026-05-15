@@ -65,7 +65,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'case \"$CLAUDE_TOOL_INPUT_FILE_PATH\" in *.py) echo \"{\\\"feedback\\\": \\\"Type checking with pyright...\\\"}\" >&2; output=$(uv run pyright \"$CLAUDE_TOOL_INPUT_FILE_PATH\" 2>&1); if [ $? -eq 0 ]; then echo \"{\\\"feedback\\\": \\\"No type errors.\\\", \\\"suppressOutput\\\": true}\"; else echo \"$output\" | head -20 >&2; echo \"{\\\"feedback\\\": \\\"Pyright found type errors.\\\"}\" >&2; fi; exit 0 ;; esac'",
+            "command": "bash -c 'case \"$CLAUDE_TOOL_INPUT_FILE_PATH\" in *.py) echo \"{\\\"feedback\\\": \\\"Type checking with pyrefly...\\\"}\" >&2; output=$(uv run pyrefly check \"$CLAUDE_TOOL_INPUT_FILE_PATH\" 2>&1); if [ $? -eq 0 ]; then echo \"{\\\"feedback\\\": \\\"No type errors.\\\", \\\"suppressOutput\\\": true}\"; else echo \"$output\" | head -20 >&2; echo \"{\\\"feedback\\\": \\\"Pyrefly found type errors.\\\"}\" >&2; fi; exit 0 ;; esac'",
             "timeout": 30
           }
         ]
@@ -83,7 +83,7 @@
     ]
   },
   "enabledPlugins": {
-    "uv@jamie-bitflight-skills": true,
-    "python-engineering@jamie-bitflight-skills": true
+    "python-engineering@jamie-bitflight-skills": true,
+    "andrej-karpathy-skills@karpathy-skills": true
   }
 }

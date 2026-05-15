@@ -13,13 +13,8 @@ This directory contains project-specific skills that provide Claude with domain 
 ### Workflows
 | Skill | Description |
 |-------|-------------|
-| [onboard](./onboard/SKILL.md) | Onboard Claude to a new task by exploring the codebase and building context |
-| [ticket](./ticket/SKILL.md) | Work on a JIRA/Linear ticket end-to-end |
-| [pr-review](./pr-review/SKILL.md) | Review a pull request using project standards |
-| [pr-summary](./pr-summary/SKILL.md) | Generate a pull request summary for the current branch |
 | [code-quality](./code-quality/SKILL.md) | Run code quality checks and report findings by severity |
 | [docs-sync](./docs-sync/SKILL.md) | Check if documentation is in sync with code |
-| [worktree-commit-merge](./worktree-commit-merge/SKILL.md) | Commit worktree changes, merge into master/main, sync branch |
 
 ### Testing & Debugging
 | Skill | Description |
@@ -34,11 +29,6 @@ This directory contains project-specific skills that provide Claude with domain 
 | [django-forms](./django-forms/SKILL.md) | Form handling, validation, ModelForm patterns |
 | [django-templates](./django-templates/SKILL.md) | Template inheritance, tags, filters, partials |
 
-### Frontend & UI
-| Skill | Description |
-|-------|-------------|
-| [htmx-patterns](./htmx-patterns/SKILL.md) | HTMX attributes, partial templates, dynamic UI |
-
 ### Background Tasks
 | Skill | Description |
 |-------|-------------|
@@ -49,9 +39,8 @@ This directory contains project-specific skills that provide Claude with domain 
 ### Building a New Feature
 1. **django-models** - Design models
 2. **django-forms** - Create forms for user input
-3. **htmx-patterns** - Dynamic UI
-4. **django-templates** - Page templates
-5. **pytest-django-patterns** - Write tests (TDD)
+3. **django-templates** - Page templates
+4. **pytest-django-patterns** - Write tests (TDD)
 
 ### Building a Background Task
 1. **celery-patterns** - Task definition
