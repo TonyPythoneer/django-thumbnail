@@ -6,7 +6,6 @@
 PROJECT          = django_thumbnail
 PYTHON_CMD       = uv run python
 DJANGO_SETTINGS_LOCAL = DJANGO_SETTINGS_MODULE=$(PROJECT).settings.local
-DJANGO_SETTINGS_TEST  = DJANGO_SETTINGS_MODULE=$(PROJECT).settings.test
 
 # ============================================================
 # Django shell (inside web container)
@@ -18,7 +17,7 @@ shell:              ## Django shell (requires: make up)
 # Code quality
 # ============================================================
 test:               ## Run pytest suite in local host
-	$(DJANGO_SETTINGS_TEST) $(PYTHON_CMD) -m pytest
+	$(PYTHON_CMD) -m pytest
 
 smoke:              ## Smoke test docker-compose stack from host (requires: make up)
 	$(DJANGO_SETTINGS_LOCAL) $(PYTHON_CMD) -m pytest -m smoke -v
