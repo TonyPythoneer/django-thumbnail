@@ -1,36 +1,19 @@
 {
   "languages": {
     "Python": {
-      "language_servers": ["pyright", "ruff"],
+      "language_servers": ["pyrefly", "ruff", "!pyright", "!basedpyright"],
       "format_on_save": "on",
-      "formatter": {
-        "external": {
-          "command": "uv",
-          "arguments": [
-            "run",
-            "ruff",
-            "format",
-            "--stdin-filename",
-            "{buffer_path}",
-            "-",
-          ],
-        },
-      },
+      "formatter": [
+        { "code_actions": { "source.organizeImports.ruff": true, "source.fixAll.ruff": true } },
+        { "language_server": { "name": "ruff" } }
+      ],
     },
   },
   "lsp": {
-    "pyright": {
-      "settings": {
-        "python": {
-          "pythonPath": ".venv/bin/python",
-        },
-        "pyright": {
-          "plugins": {
-            "django-stubs": {
-              "django_settings_module": "django_thumbnail.settings.local",
-            },
-          },
-        },
+    "pyrefly": {
+      "binary": {
+        "path": ".venv/bin/pyrefly",
+        "arguments": ["lsp"],
       },
     },
     "ruff": {

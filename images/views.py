@@ -1,9 +1,11 @@
 import io
 from http import HTTPMethod, HTTPStatus
+from typing import cast
 
 from celery.result import AsyncResult
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.http import HttpRequest, JsonResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.csrf import csrf_exempt
@@ -31,21 +33,21 @@ def images_list(request: HttpRequest) -> JsonResponse:
             return JsonResponse(
                 {"error": "filename required"}, status=HTTPStatus.BAD_REQUEST
             )
-        image = Image.create_with_key(request.user, filename)
+        image = Image.create_with_key(cast(User, request.user), filename)
         presign_url = public_s3.presign_put(image.original_key)
         return JsonResponse(
             {"image_id": str(image.id), "upload_url": presign_url},
             status=HTTPStatus.CREATED,
         )
 
-    qs = Image.objects.for_user(request.user).prefetch_related("tasks")
+    qs = Image.objects.for_user(cast(User, request.user)).prefetch_related("tasks")
     return JsonResponse({"images": [i.to_dict() for i in qs]})
 
 
 @login_required_json
 @require_http_methods([HTTPMethod.DELETE])
 def images_detail(request: HttpRequest, image_id: str) -> JsonResponse:
-    image = Image.objects.for_user(request.user).filter(id=image_id).first()
+    image = Image.objects.for_user(cast(User, request.user)).filter(id=image_id).first()
     if not image:
         return JsonResponse({"error": "not found"}, status=HTTPStatus.NOT_FOUND)
 
@@ -69,7 +71,7 @@ def tasks_create(request: HttpRequest) -> JsonResponse:
             {"error": "image_id required"}, status=HTTPStatus.BAD_REQUEST
         )
 
-    image = Image.objects.for_user(request.user).filter(id=image_id).first()
+    image = Image.objects.for_user(cast(User, request.user)).filter(id=image_id).first()
     if not image:
         return JsonResponse({"error": "not found"}, status=HTTPStatus.NOT_FOUND)
 
@@ -115,7 +117,7 @@ def auth_login(request: HttpRequest) -> JsonResponse:
         )
 
     login(request, user)
-    return JsonResponse({"user": user.username})
+    return JsonResponse({"user": cast(User, user).username})
 
 
 @csrf_exempt
@@ -128,7 +130,7 @@ def auth_logout(request: HttpRequest) -> JsonResponse:
 # ---------- HTML Views ----------
 
 
-def _gallery_row(img: Image, task: ImageTask) -> dict:
+def _gallery_row(img: Image, task: "ImageTask | None") -> dict:
     return {
         "id": str(img.id),
         "original_filename": img.original_filename,
@@ -167,7 +169,7 @@ def html_logout(request: HttpRequest):
 
 @login_required(login_url="login")
 def gallery(request: HttpRequest):
-    images_qs = Image.objects.for_user(request.user).prefetch_related("tasks")
+    images_qs = Image.objects.for_user(cast(User, request.user)).prefetch_related("tasks")
     rows = [_gallery_row(img, img.latest_task()) for img in images_qs]
     return render(request, "images/gallery.html", {"images": rows})
 
@@ -177,7 +179,7 @@ def upload(request: HttpRequest):
     form = UploadForm(request.POST or None, request.FILES or None)
     if request.method == HTTPMethod.POST and form.is_valid():
         f = form.cleaned_data["file"]
-        image = Image.create_with_key(request.user, f.name)
+        image = Image.create_with_key(cast(User, request.user), f.name)
         image.upload_original(io.BytesIO(f.read()))
         ImageTask.create_and_dispatch(image)
         return redirect("gallery")
@@ -187,7 +189,7 @@ def upload(request: HttpRequest):
 @login_required(login_url="login")
 @require_http_methods([HTTPMethod.POST])
 def image_delete(request: HttpRequest, image_id: str):
-    image = Image.objects.for_user(request.user).filter(id=image_id).first()
+    image = Image.objects.for_user(cast(User, request.user)).filter(id=image_id).first()
     if image:
         image.delete_from_storage()
         image.delete()

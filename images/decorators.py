@@ -1,6 +1,5 @@
 import json
 from functools import wraps
-from http import HTTPStatus
 
 from django.http import HttpRequest, JsonResponse
 

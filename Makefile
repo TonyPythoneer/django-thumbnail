@@ -1,4 +1,4 @@
-.PHONY: shell test smoke lint format up-infra up down logs-app logs-infra test-image-upload clean-db clean-bucket clean-all help
+.PHONY: shell test smoke check fix up-infra up down logs-app logs-infra test-image-upload clean-db clean-bucket clean-all help
 
 # ============================================================
 # Config
@@ -22,10 +22,12 @@ test:               ## Run pytest suite in local host
 smoke:              ## Smoke test docker-compose stack from host (requires: make up)
 	$(DJANGO_SETTINGS_LOCAL) $(PYTHON_CMD) -m pytest -m smoke -v
 
-lint:               ## Ruff lint check
+check:              ## Verify lint + format + types (read-only, CI-safe)
 	$(PYTHON_CMD) -m ruff check
+	$(PYTHON_CMD) -m ruff format --check
+	$(PYTHON_CMD) -m pyrefly check
 
-format:             ## Ruff auto-fix + format
+fix:                ## Auto-fix lint + format
 	$(PYTHON_CMD) -m ruff check --fix
 	$(PYTHON_CMD) -m ruff format
 

@@ -1,0 +1,10 @@
+project-includes = [
+    "images",
+    "django_thumbnail",
+]
+project-excludes = [
+    "images/tests/**/*",
+    "images/management/**/*",
+]
+python-version = "3.14.0"
+infer-with-first-use = false

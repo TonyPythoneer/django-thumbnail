@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 from django.urls import reverse
 
-from images.models import Image, ImageTask
+from images.models import Image
 
 from .factories import ImageFactory, ImageTaskFactory
 
@@ -44,7 +44,9 @@ class TestGallery:
         for _ in range(5):
             img = ImageFactory(user=user)
             ImageTaskFactory(image=img)
-        with django_assert_num_queries(4):  # session auth + user + images + tasks prefetch
+        with django_assert_num_queries(
+            4
+        ):  # session auth + user + images + tasks prefetch
             client.get(reverse("gallery"))
 
 
@@ -57,6 +59,7 @@ class TestUpload:
     def test_upload_post_creates_image_and_dispatches_task(self, auth_client):
         client, user = auth_client
         from django.core.files.uploadedfile import SimpleUploadedFile
+
         from .utils import make_image_buf
 
         buf = make_image_buf()

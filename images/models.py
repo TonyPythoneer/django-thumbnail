@@ -1,12 +1,16 @@
 import io
 import uuid
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import models
 
 from .storage import internal_s3, public_s3
+
+if TYPE_CHECKING:
+    from django.db.models.fields.related_descriptors import RelatedManager
 
 
 def _fmt_ts(dt) -> str:
@@ -20,7 +24,7 @@ class ImageStatus(models.TextChoices):
     FAILED = "failed", "Failed"
 
 
-class ImageQuerySet(models.QuerySet):
+class ImageQuerySet(models.QuerySet["Image"]):
     def for_user(self, user: User) -> "ImageQuerySet":
         return self.filter(user=user)
 
@@ -28,12 +32,13 @@ class ImageQuerySet(models.QuerySet):
 class Image(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="images")
+    tasks: "RelatedManager[ImageTask]"
     original_filename = models.CharField(max_length=255)
     original_key = models.CharField(max_length=512)
     thumbnail_key = models.CharField(max_length=512)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    objects = ImageQuerySet.as_manager()
+    objects: ImageQuerySet = ImageQuerySet.as_manager()  # type: ignore[assignment]
 
     class Meta:
         ordering = ["-created_at"]
@@ -51,7 +56,7 @@ class Image(models.Model):
         return task.status if task else ImageStatus.PENDING
 
     @staticmethod
-    def format_key(user_id: int, image_id: uuid.UUID, filename: str) -> str:
+    def format_key(user_id: int | str, image_id: uuid.UUID, filename: str) -> str:
         ext = Path(filename).suffix
         return f"users/{user_id}/{image_id}/{uuid.uuid4().hex}{ext}"
 
@@ -64,7 +69,7 @@ class Image(models.Model):
     @classmethod
     def create_with_key(cls, user: User, filename: str) -> "Image":
         image_id = uuid.uuid4()
-        original_key = cls.format_key(user.id, image_id, filename)
+        original_key = cls.format_key(user.pk, image_id, filename)
         thumbnail_key = cls.format_thumbnail_key_from_original(original_key)
 
         return cls.objects.create(
@@ -133,7 +138,7 @@ class ImageTask(models.Model):
         )  # local import: tasks.py imports ImageTask from models.py (circular)
 
         task = cls.objects.create(image=image)
-        async_result = generate_thumbnail.delay(str(task.id))
+        async_result = generate_thumbnail.delay(str(task.id))  # type: ignore[union-attr]
         task.celery_task_id = async_result.id
         task.save(update_fields=["celery_task_id", "updated_at"])
         return task
@@ -142,7 +147,7 @@ class ImageTask(models.Model):
         return {
             "task_id": str(self.id),
             "celery_task_id": self.celery_task_id,
-            "image_id": str(self.image_id),
+            "image_id": str(self.image.id),
             "status": self.status,
             "error_message": self.error_message,
             "original_key": self.image.original_key,

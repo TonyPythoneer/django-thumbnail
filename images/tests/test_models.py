@@ -1,6 +1,6 @@
 import pytest
 
-from images.models import Image, ImageStatus, ImageTask
+from images.models import Image, ImageStatus
 
 from .factories import ImageFactory, ImageTaskFactory
 
@@ -11,6 +11,8 @@ class TestLatestTask:
     def test_latest_task_returns_newest(self):
         image = ImageFactory()
         older = ImageTaskFactory(image=image, status=ImageStatus.FAILED)
+        assert image.latest_task().id == older.id
+
         newer = ImageTaskFactory(image=image, status=ImageStatus.DONE)
         assert image.latest_task().id == newer.id
 
