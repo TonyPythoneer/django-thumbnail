@@ -6,13 +6,18 @@
 >
 > **基準日**：2026-05-14　**最後更新**：2026-05-16　**分支**：`claude/skills`
 >
-> **狀態**：**第 1 波完成** —— F1（卸 `uv` plugin）、F2（清 README 幽靈名單）、
-> P1（型別檢查器對齊 pyrefly）、P2（htmx 拍板永不引入）、H1（建 celery-patterns
-> skill）、F3/F4/F5/F6（型別 + htmx + Debug Toolbar 假訊號清理）全部完成。
-> README celery-patterns 死連結自動消失。
+> **狀態**：**全部完成** —— 第 1 波 (F1/F2/P1/P2/H1/F3/F4/F5/F6) + 第 2 波 (H2)
+> + 第 3 波 (H3/P3/C1/P4) 全部結案。
 >
-> **剩餘**：第 2/3 波 —— H2 (storage-s3)、H3 (opentelemetry-patterns)、
-> P3 (django-extensions 套件)、P4 (品質檢查鏈)、C1 (啟用政策)。
+> **第 2/3 波結果**（2026-05-16）：
+> - **H2** 建 `.claude/skills/storage-s3/SKILL.md`（118 行）—— boto3 singleton、
+>   InternalS3/PublicS3 雙端點、bucket commands、MinIO endpoint env
+> - **H3** 建 `.claude/skills/opentelemetry-patterns/SKILL.md`（146 行）——
+>   `set_attributes(dict)` 批次、web vs Celery worker 分流、SimpleSpanProcessor fork-safety
+> - **P3** 拍板「不裝 django-extensions」—— 證據：套件未在 `pyproject.toml`、無使用記錄；
+>   於 `.claude/skills/django-extensions/SKILL.md` 開頭加 DORMANT 註記與啟用步驟
+> - **C1 + P4** 新建 `.claude/SKILLS_POLICY.md`（英文版）—— 12 可用 / 24 不啟用、
+>   本地工具對應表、品質檢查鏈三階段（/fix → /code-quality + code-reviewer → CI）
 >
 > **重大更正**：原 §0 / P1 假設專案用 pyright 或 ty —— 錯。
 > 實際 `pyproject.toml` dev group 裝的是 **`pyrefly`**（Meta 出的），
@@ -50,18 +55,18 @@
 |---|---|---|---|:--:|---|:--:|
 | **P1** | 待決 | 拍板型別檢查器 ✅ DONE（對齊 pyrefly） | 6 處假訊號改 `pyrefly check` | 🔴 P0 | — | — |
 | **P2** | 待決 | 決定 htmx 去留 ✅ DONE（永不引入，2026-05-16） | 已不建 `htmx-patterns`、F4/F5 刪 htmx 段、F6 加未用註記 | 🟠 P1 | — | — |
-| **P3** | 待決 | 決定 `django-extensions` 套件 | 裝套件 or 標記休眠 | 🟡 P2 | — | 低 |
-| **P4** | 待決 | 定品質檢查鏈入口 | `fix`/`code-quality`/`code-reviewer` | 🟡 P2 | P1 | 低 |
+| **P3** | 待決 | 決定 `django-extensions` 套件 ✅ DONE（不裝、休眠註記，2026-05-16） | `.claude/skills/django-extensions/SKILL.md` 加 DORMANT block | 🟡 P2 | — | — |
+| **P4** | 待決 | 定品質檢查鏈入口 ✅ DONE（2026-05-16） | 入口已寫入 `SKILLS_POLICY.md` §5 | 🟡 P2 | P1 | — |
 | **H1** | 招募 | **建立 `celery-patterns` skill** ✅ DONE (2026-05-16) | `.claude/skills/celery-patterns/SKILL.md` | 🔴 P0 | skill-creator | 低（純新增） |
-| **H2** | 招募 | 建立 `storage-s3` skill | 新本地 skill | 🟠 P1 | skill-creator | 低（純新增） |
-| **H3** | 招募 | 建立 `opentelemetry-patterns` skill | 新本地 skill | 🟡 P2 | skill-creator | 低（純新增） |
+| **H2** | 招募 | 建立 `storage-s3` skill ✅ DONE (2026-05-16) | `.claude/skills/storage-s3/SKILL.md`（118 行） | 🟠 P1 | skill-creator | — |
+| **H3** | 招募 | 建立 `opentelemetry-patterns` skill ✅ DONE (2026-05-16) | `.claude/skills/opentelemetry-patterns/SKILL.md`（146 行） | 🟡 P2 | skill-creator | — |
 | **F1** | 資遣 | **卸除 `uv` plugin** ✅ DONE | `uv@jamie-bitflight-skills` | 🟠 P1 | — | 極低（功能重複） |
 | **F2** | 資遣 | 清掉 README 幽靈 skill 名單 ✅ DONE（celery 列待 H1） | `.claude/skills/README.md` | 🟠 P1 | H1, P2 | 低 |
 | **F3** | 整頓 | 修 `code-quality` 假訊號 ✅ DONE (2026-05-16) | 本地 skill | 🟠 P1 | — | — |
 | **F4** | 整頓 | 修 `systematic-debugging` 假訊號 ✅ DONE (2026-05-16) | 本地 skill | 🟠 P1 | — | — |
 | **F5** | 整頓 | 修本地 `code-reviewer` agent 假訊號 ✅ DONE (2026-05-16) | 本地 agent | 🟠 P1 | — | — |
 | **F6** | 整頓 | 標註 Django skills 的 htmx 段落 ✅ DONE (2026-05-16) | `django-forms`/`django-templates`/`pytest-django-patterns` | 🟡 P2 | — | — |
-| **C1** | 政策 | 寫「python-engineering 啟用/不啟用」政策 | `CLAUDE.md` 或新 `.claude/SKILLS_POLICY.md` | 🟡 P2 | — | 低 |
+| **C1** | 政策 | 寫「python-engineering 啟用/不啟用」政策 ✅ DONE (2026-05-16) | `.claude/SKILLS_POLICY.md`（英文、136 行） | 🟡 P2 | — | — |
 
 > 註：`SKILLS_RESEARCH.md` §6.6 提到的 `CLAUDE.md` 漂移，**使用者已自行修好**
 > （分支名、task 檔路徑、phase、no-django-storages 都已更新）。本清單不再列該項。
@@ -235,10 +240,10 @@
 |---|---|---|---|
 | ~~**P1**~~ | ~~型別檢查器~~ | ✅ 已拍板對齊 `pyrefly`（2026-05-16）—— pyright/ty 都不是專案實際使用工具 | — |
 | ~~**P2**~~ | ~~htmx 去留~~ | ✅ 拍板「永不引入」（2026-05-16）—— README 已刪 htmx-patterns 行；F4/F5 刪 htmx 段；F6 三 Django skills 加未用註記（內文保留） | — |
-| **P3** | `django-extensions` 套件 | (A) 裝套件（skill 本身寫得好、Django 內省實用）　/　(B) 不裝：把 `django-extensions` skill 標記休眠 | —（獨立） |
-| **P4** | 品質檢查入口 | 建議：內迴圈 `fix`、PR 前 `code-quality` + 本地 `code-reviewer`；`lint`/`review` 不啟用 | C1 |
+| ~~**P3**~~ | ~~`django-extensions` 套件~~ | ✅ 拍板「不裝」（2026-05-16）—— 無使用訊號；skill 加 DORMANT 註記 | — |
+| ~~**P4**~~ | ~~品質檢查入口~~ | ✅ 拍板（2026-05-16）—— 內迴圈 `/fix`；PR 前 `/code-quality` + `code-reviewer`；CI 走 `make check` + `make test`。詳見 `SKILLS_POLICY.md` §5 | — |
 
-> **進度**：P1、P2 已拍板完成。剩餘 P3（django-extensions 套件）、P4（品質檢查鏈入口）。
+> **進度**：P1、P2、P3、P4 全部拍板完成 (2026-05-16)。
 
 ---
 
@@ -256,31 +261,34 @@
   ├─ F6  Django skills htmx 註記     ✅ DONE
   └─ H1  建立 celery-patterns        ✅ DONE
 
-第 2 波（補洞）
-  └─ H2  建立 storage-s3            （搭 refinement #03 一起做）
+第 2 波（補洞）✅ 完成 (2026-05-16)
+  └─ H2  建立 storage-s3            ✅ DONE
 
-第 3 波（深度 + 政策）
-  ├─ H3  建立 opentelemetry-patterns
-  ├─ C1  寫 python-engineering 啟用政策
-  └─ P3  決定 django-extensions 套件
+第 3 波（深度 + 政策）✅ 完成 (2026-05-16)
+  ├─ H3  建立 opentelemetry-patterns ✅ DONE
+  ├─ C1  寫 python-engineering 啟用政策 ✅ DONE（SKILLS_POLICY.md）
+  ├─ P3  決定 django-extensions 套件 ✅ DONE（不裝，DORMANT）
+  └─ P4  品質檢查鏈入口             ✅ DONE（寫入 SKILLS_POLICY.md §5）
 ```
 
 ---
 
 ## 8. 一頁速覽
 
-**招募 3 個**（建本地 skill）：`celery-patterns` ✅、`storage-s3`🟠、`opentelemetry-patterns`🟡
+**招募 3 個** ✅：`celery-patterns`、`storage-s3`、`opentelemetry-patterns`
 
-**資遣 2 項** ✅：卸 `uv` plugin、清 README 幽靈名單（celery-patterns 連結隨 H1 自動生效）
+**資遣 2 項** ✅：卸 `uv` plugin、清 README 幽靈名單
 
 **整頓 4 個** ✅（修假訊號）：`code-quality`、`systematic-debugging`、本地 `code-reviewer`、3 個 Django skills 的 htmx 段
 
-**待決**：P3 (django-extensions 套件)、P4 (品質檢查鏈入口)。P1/P2 已拍板。
+**待決 4 案** ✅：P1（pyrefly）、P2（htmx 不引入）、P3（django-extensions 不裝）、P4（品質檢查鏈）。全部拍板。
+
+**政策** ✅：新建 `.claude/SKILLS_POLICY.md` 列管 python-engineering plugin。
 
 **不動**：9 個本地 skill 主體、2 個本地 agent、`python-engineering` plugin（留著用 8 個）、
 `caveman`（使用者偏好）、`nuxt-skills`（屬 jen-lab，非本專案）
 
 ---
 
-*本清單僅供 review；尚未執行任何安裝、卸除或檔案變更。*
-*配套文件：`SKILLS_RESEARCH.md`（研究與評分依據）。*
+*所有任務 (P1–P4、F1–F6、H1–H3、C1) 於 2026-05-16 完成。*
+*配套文件：`SKILLS_RESEARCH.md`（研究與評分依據）、`.claude/SKILLS_POLICY.md`（plugin 啟用政策）。*

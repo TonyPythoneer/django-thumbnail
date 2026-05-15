@@ -34,7 +34,7 @@ description: Django form handling patterns including ModelForm, validation, clea
 
 **HTMX handling:**
 
-> **註**：本專案目前未使用 htmx —— 以下段落暫不適用，僅供未來引入時參考。
+> **Note**: This project does not currently use htmx. The section below is preserved for reference only — it does not apply to the current codebase.
 
 - Check `request.headers.get("HX-Request")` for HTMX requests
 - Return partial template on success/error for HTMX
