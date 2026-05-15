@@ -83,7 +83,6 @@
     ]
   },
   "enabledPlugins": {
-    "uv@jamie-bitflight-skills": true,
     "python-engineering@jamie-bitflight-skills": true
   }
 }

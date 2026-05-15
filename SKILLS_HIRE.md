@@ -4,9 +4,10 @@
 > 「做什麼、怎麼做」。用人事比喻組織任務：**招募 (HIRE)**、**留任整頓 (FIX)**、
 > **資遣 (FIRE)**、**待決簽核 (PENDING)**。
 >
-> **基準日**：2026-05-14　**分支**：`refactor/simply`
+> **基準日**：2026-05-14　**最後更新**：2026-05-16　**分支**：`claude/skills`
 >
-> **狀態**：任務清單草稿 —— 尚未執行任何一項。請 review 後再動工。
+> **狀態**：第 1 波啟動 —— F1（卸 `uv` plugin）、F2（清 README 幽靈名單）已完成。
+> 其餘任務未動。
 
 ---
 
@@ -44,8 +45,8 @@
 | **H1** | 招募 | **建立 `celery-patterns` skill** | 新本地 skill | 🔴 P0 | skill-creator | 低（純新增） |
 | **H2** | 招募 | 建立 `storage-s3` skill | 新本地 skill | 🟠 P1 | skill-creator | 低（純新增） |
 | **H3** | 招募 | 建立 `opentelemetry-patterns` skill | 新本地 skill | 🟡 P2 | skill-creator | 低（純新增） |
-| **F1** | 資遣 | **卸除 `uv` plugin** | `uv@jamie-bitflight-skills` | 🟠 P1 | — | 極低（功能重複） |
-| **F2** | 資遣 | 清掉 README 幽靈 skill 名單 | `.claude/skills/README.md` | 🟠 P1 | H1, P2 | 低 |
+| **F1** | 資遣 | **卸除 `uv` plugin** ✅ DONE | `uv@jamie-bitflight-skills` | 🟠 P1 | — | 極低（功能重複） |
+| **F2** | 資遣 | 清掉 README 幽靈 skill 名單 ✅ DONE（celery 列待 H1） | `.claude/skills/README.md` | 🟠 P1 | H1, P2 | 低 |
 | **F3** | 整頓 | 修 `code-quality` 假訊號 | 本地 skill | 🟠 P1 | P1, P2 | 低 |
 | **F4** | 整頓 | 修 `systematic-debugging` 假訊號 | 本地 skill | 🟠 P1 | P1, P2 | 低 |
 | **F5** | 整頓 | 修本地 `code-reviewer` agent 假訊號 | 本地 agent | 🟠 P1 | P1, P2 | 低 |
@@ -106,19 +107,21 @@
 
 ## 3. 資遣 FIRE —— 卸除與清理
 
-### F1 — 卸除 `uv` plugin 🟠 P1
+### F1 — 卸除 `uv` plugin 🟠 P1 ✅ **DONE** (2026-05-16)
 
 - **為什麼**：`uv@jamie-bitflight-skills` 是獨立 plugin，但只裝了一個 `uv` skill ——
   而 `python-engineering` plugin **已經內含 `python-engineering:uv`**，功能完全重複。
   留著只是多佔 context、多一份要維護的東西。
 - **怎麼做**：用 Claude Code 的 `/plugin` 管理介面移除 `uv@jamie-bitflight-skills`
   （scope 是 project，只影響本專案，可隨時重裝）。
+- **實作**：直接編輯 `.claude/settings.json`，從 `enabledPlugins` 移除
+  `"uv@jamie-bitflight-skills": true` 一行（重啟 Claude Code 生效）。
 - **驗收**：skill 清單不再出現獨立 `uv`；`python-engineering:uv` 仍在，需要時照用。
 - **風險**：極低。功能重複、可逆。
 - **註**：`nuxt-skills` plugin 是 `jen-lab` 專案的 local 安裝，**本專案不受影響、無需處理**。
   若要全域清掉，去 `jen-lab` 那邊決定。
 
-### F2 — 清掉 `.claude/skills/README.md` 的幽靈名單 🟠 P1
+### F2 — 清掉 `.claude/skills/README.md` 的幽靈名單 🟠 P1 ✅ **DONE** (2026-05-16，部分)
 
 - **為什麼**：README 列了 16 個 skill，磁碟上只有 9 個。7 個幽靈：
   `onboard`、`ticket`、`pr-review`、`pr-summary`、`worktree-commit-merge`、
@@ -132,8 +135,14 @@
     - `worktree-commit-merge` → `github-workflow` agent
     - `onboard` / `ticket` → 無對應，若真要這流程再重建
   - 同步修正 README 開頭「project-specific skills」的數量敘述。
+- **實作**（2026-05-16）：
+  - 已刪 6 列：`onboard` / `ticket` / `pr-review` / `pr-summary` /
+    `worktree-commit-merge` / `htmx-patterns`（提前判決：專案無 htmx）。
+  - 「Frontend & UI」整段移除、「Building a New Feature」combo 移除 htmx 步驟。
+  - `celery-patterns` 列保留（仍為死連結，H1 完成後自然生效）。
+- **剩餘**：H1 完成後驗證 `celery-patterns` 連結生效。
 - **驗收**：README 列的每個 skill 都在磁碟上有對應目錄。
-- **依賴**：H1（celery 那列）、P2（htmx 那列）。可與 `docs-sync` / refinement #01 一起做。
+- **依賴**：H1（celery 那列）、P2（htmx 那列 → 已提前處理）。
 
 ---
 
@@ -210,8 +219,8 @@
 ```
 第 1 波（解鎖 + 零風險，立刻可做）
   ├─ P1  拍板 pyright vs ty          ← 解鎖 F3/F4/F5/C1
-  ├─ P2  拍板 htmx 去留              ← 解鎖 F2/F4/F6
-  ├─ F1  卸除 uv plugin              ← 無依賴，極低風險
+  ├─ P2  拍板 htmx 去留              ← 解鎖 F4/F6（F2 htmx 部分已提前處理）
+  ├─ F1  卸除 uv plugin              ✅ DONE (2026-05-16)
   └─ H1  建立 celery-patterns        ← 無依賴，最高價值
 
 第 2 波（補洞 + 整頓）
@@ -234,7 +243,7 @@
 
 **招募 3 個**（建本地 skill）：`celery-patterns`🔴、`storage-s3`🟠、`opentelemetry-patterns`🟡
 
-**資遣 2 項**：卸 `uv` plugin、清 README 7 個幽靈名單
+**資遣 2 項** ✅：卸 `uv` plugin（done）、清 README 7 個幽靈名單（done，celery-patterns 列待 H1）
 
 **整頓 4 個**（修假訊號）：`code-quality`、`systematic-debugging`、本地 `code-reviewer`、3 個 Django skills 的 htmx 段
 
