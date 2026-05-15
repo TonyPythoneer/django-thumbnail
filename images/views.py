@@ -9,9 +9,9 @@ from django.shortcuts import redirect, render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
+from .decorators import login_required_json, parse_json_body
 from .forms import LoginForm, UploadForm
 from .models import Image, ImageStatus, ImageTask
-from .decorators import login_required_json, parse_json_body
 from .storage import public_s3
 
 # ---------- Images ----------
@@ -23,7 +23,9 @@ def images_list(request: HttpRequest) -> JsonResponse:
     if request.method == HTTPMethod.POST:
         body = parse_json_body(request)
         if body is None:
-            return JsonResponse({"error": "invalid json"}, status=HTTPStatus.BAD_REQUEST)
+            return JsonResponse(
+                {"error": "invalid json"}, status=HTTPStatus.BAD_REQUEST
+            )
         filename = body.get("filename")
         if not filename:
             return JsonResponse(
@@ -36,7 +38,7 @@ def images_list(request: HttpRequest) -> JsonResponse:
             status=HTTPStatus.CREATED,
         )
 
-    qs = Image.objects.for_user(request.user)
+    qs = Image.objects.for_user(request.user).prefetch_related("tasks")
     return JsonResponse({"images": [i.to_dict() for i in qs]})
 
 
@@ -126,15 +128,15 @@ def auth_logout(request: HttpRequest) -> JsonResponse:
 # ---------- HTML Views ----------
 
 
-def _gallery_row(img: Image, task) -> dict:
+def _gallery_row(img: Image, task: ImageTask) -> dict:
     return {
         "id": str(img.id),
         "original_filename": img.original_filename,
         "status": task.status if task else ImageStatus.PENDING,
         "task_id": str(task.id) if task else "",
-        "original_url": public_s3.presign_get(img.original_key) if img.original_key else None,
+        "original_url": public_s3.presign_get(img.original_key),
         "thumbnail_url": public_s3.presign_get(img.thumbnail_key)
-        if task and task.status == ImageStatus.DONE and img.thumbnail_key
+        if task and task.status == ImageStatus.DONE
         else None,
         "created_at": img.created_at,
     }

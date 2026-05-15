@@ -26,7 +26,7 @@ class Image(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="images")
     original_filename = models.CharField(max_length=255)
     original_key = models.CharField(max_length=512)
-    thumbnail_key = models.CharField(max_length=512, blank=True, default="")
+    thumbnail_key = models.CharField(max_length=512)
     created_at = models.DateTimeField(auto_now_add=True)
 
     objects = ImageQuerySet.as_manager()
@@ -42,7 +42,7 @@ class Image(models.Model):
         )
 
     def latest_task(self) -> "ImageTask | None":
-        return self.tasks.order_by("-created_at").first()
+        return next(iter(self.tasks.all()), None)
 
     def current_status(self) -> str:
         task = self.latest_task()
@@ -86,12 +86,8 @@ class Image(models.Model):
             "id": str(self.id),
             "original_filename": self.original_filename,
             "status": self.current_status(),
-            "thumbnail_url": public_s3.presign_get(self.thumbnail_key)
-            if self.thumbnail_key
-            else None,
-            "original_url": public_s3.presign_get(self.original_key)
-            if self.original_key
-            else None,
+            "thumbnail_url": public_s3.presign_get(self.thumbnail_key),
+            "original_url": public_s3.presign_get(self.original_key),
             "created_at": self.created_at.isoformat(),
         }
 
@@ -152,6 +148,6 @@ class ImageTask(models.Model):
             "original_key": self.image.original_key,
             "thumbnail_key": self.image.thumbnail_key,
             "thumbnail_url": public_s3.presign_get(self.image.thumbnail_key)
-            if self.status == ImageStatus.DONE and self.image.thumbnail_key
+            if self.status == ImageStatus.DONE
             else None,
         }

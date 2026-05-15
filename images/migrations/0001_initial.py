@@ -28,10 +28,7 @@ class Migration(migrations.Migration):
                 ),
                 ("original_filename", models.CharField(max_length=255)),
                 ("original_key", models.CharField(max_length=512)),
-                (
-                    "thumbnail_key",
-                    models.CharField(blank=True, default="", max_length=512),
-                ),
+                ("thumbnail_key", models.CharField(max_length=512)),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 (
                     "user",
