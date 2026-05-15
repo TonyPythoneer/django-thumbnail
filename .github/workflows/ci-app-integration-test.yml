@@ -14,7 +14,7 @@ jobs:
       postgres:
         image: postgres:17-alpine
         env:
-          POSTGRES_DB: django_thumbnail_test
+          POSTGRES_DB: django_thumbnail
           POSTGRES_USER: django_thumbnail
           POSTGRES_PASSWORD: django_thumbnail
         ports:
@@ -40,6 +40,8 @@ jobs:
         run: make check
 
       - name: Test
-        env:
-          DJANGO_SETTINGS_MODULE: django_thumbnail.settings.test
         run: make test
+
+      - name: Dump postgres logs on failure
+        if: failure()
+        run: docker logs "$(docker ps -aqf 'ancestor=postgres:17-alpine')"
