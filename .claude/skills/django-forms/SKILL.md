@@ -33,6 +33,9 @@ description: Django form handling patterns including ModelForm, validation, clea
 - Return redirect on success, re-render with form on error
 
 **HTMX handling:**
+
+> **註**：本專案目前未使用 htmx —— 以下段落暫不適用，僅供未來引入時參考。
+
 - Check `request.headers.get("HX-Request")` for HTMX requests
 - Return partial template on success/error for HTMX
 - Use `HX-Trigger` header to notify other components

@@ -89,6 +89,8 @@ tests/
 
 ### Testing HTMX Responses
 
+> **註**：本專案目前未使用 htmx —— 以下段落暫不適用，僅供未來引入時參考。
+
 Check partial template rendered when `HX-Request` header present:
 - Pass `HTTP_HX_REQUEST="true"` to client request
 - Assert `response.templates` contains partial template name

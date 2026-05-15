@@ -27,7 +27,6 @@ Review code quality in the directory provided by the user.
    - [ ] N+1 queries avoided (select_related/prefetch_related)
    - [ ] Forms have proper validation
    - [ ] Views return correct HTTP status codes
-   - [ ] HTMX partials handle HX-Request header
    - [ ] Celery tasks are idempotent
    - [ ] Tests use factories, not raw object creation
 

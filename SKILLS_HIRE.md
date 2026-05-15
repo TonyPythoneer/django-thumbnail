@@ -6,9 +6,13 @@
 >
 > **基準日**：2026-05-14　**最後更新**：2026-05-16　**分支**：`claude/skills`
 >
-> **狀態**：第 1 波啟動 —— F1（卸 `uv` plugin）、F2（清 README 幽靈名單）、
-> P1（型別檢查器對齊 pyrefly）已完成。F3/F4/F5 的型別檢查器假訊號隨 P1 一併修掉，
-> 剩餘僅 htmx 段（卡 P2）。其餘任務未動。
+> **狀態**：**第 1 波完成** —— F1（卸 `uv` plugin）、F2（清 README 幽靈名單）、
+> P1（型別檢查器對齊 pyrefly）、P2（htmx 拍板永不引入）、H1（建 celery-patterns
+> skill）、F3/F4/F5/F6（型別 + htmx + Debug Toolbar 假訊號清理）全部完成。
+> README celery-patterns 死連結自動消失。
+>
+> **剩餘**：第 2/3 波 —— H2 (storage-s3)、H3 (opentelemetry-patterns)、
+> P3 (django-extensions 套件)、P4 (品質檢查鏈)、C1 (啟用政策)。
 >
 > **重大更正**：原 §0 / P1 假設專案用 pyright 或 ty —— 錯。
 > 實際 `pyproject.toml` dev group 裝的是 **`pyrefly`**（Meta 出的），
@@ -45,18 +49,18 @@
 | ID | 類別 | 動作 | 對象 | 優先 | 依賴 | 風險 |
 |---|---|---|---|:--:|---|:--:|
 | **P1** | 待決 | 拍板型別檢查器 ✅ DONE（對齊 pyrefly） | 6 處假訊號改 `pyrefly check` | 🔴 P0 | — | — |
-| **P2** | 待決 | 決定 htmx 去留 | `htmx-patterns` 要不要建 | 🟠 P1 | — | 阻擋 F4/F6 |
+| **P2** | 待決 | 決定 htmx 去留 ✅ DONE（永不引入，2026-05-16） | 已不建 `htmx-patterns`、F4/F5 刪 htmx 段、F6 加未用註記 | 🟠 P1 | — | — |
 | **P3** | 待決 | 決定 `django-extensions` 套件 | 裝套件 or 標記休眠 | 🟡 P2 | — | 低 |
 | **P4** | 待決 | 定品質檢查鏈入口 | `fix`/`code-quality`/`code-reviewer` | 🟡 P2 | P1 | 低 |
-| **H1** | 招募 | **建立 `celery-patterns` skill** | 新本地 skill | 🔴 P0 | skill-creator | 低（純新增） |
+| **H1** | 招募 | **建立 `celery-patterns` skill** ✅ DONE (2026-05-16) | `.claude/skills/celery-patterns/SKILL.md` | 🔴 P0 | skill-creator | 低（純新增） |
 | **H2** | 招募 | 建立 `storage-s3` skill | 新本地 skill | 🟠 P1 | skill-creator | 低（純新增） |
 | **H3** | 招募 | 建立 `opentelemetry-patterns` skill | 新本地 skill | 🟡 P2 | skill-creator | 低（純新增） |
 | **F1** | 資遣 | **卸除 `uv` plugin** ✅ DONE | `uv@jamie-bitflight-skills` | 🟠 P1 | — | 極低（功能重複） |
 | **F2** | 資遣 | 清掉 README 幽靈 skill 名單 ✅ DONE（celery 列待 H1） | `.claude/skills/README.md` | 🟠 P1 | H1, P2 | 低 |
-| **F3** | 整頓 | 修 `code-quality` 假訊號（型別部分 ✅ DONE，htmx 待 P2） | 本地 skill | 🟠 P1 | P2 | 低 |
-| **F4** | 整頓 | 修 `systematic-debugging` 假訊號（型別部分 ✅ DONE，htmx + Debug Toolbar 待 P2） | 本地 skill | 🟠 P1 | P2 | 低 |
-| **F5** | 整頓 | 修本地 `code-reviewer` agent 假訊號（型別部分 ✅ DONE，htmx 待 P2） | 本地 agent | 🟠 P1 | P2 | 低 |
-| **F6** | 整頓 | 標註 Django skills 的 htmx 段落 | `django-forms`/`django-templates`/`pytest-django-patterns` | 🟡 P2 | P2 | 低 |
+| **F3** | 整頓 | 修 `code-quality` 假訊號 ✅ DONE (2026-05-16) | 本地 skill | 🟠 P1 | — | — |
+| **F4** | 整頓 | 修 `systematic-debugging` 假訊號 ✅ DONE (2026-05-16) | 本地 skill | 🟠 P1 | — | — |
+| **F5** | 整頓 | 修本地 `code-reviewer` agent 假訊號 ✅ DONE (2026-05-16) | 本地 agent | 🟠 P1 | — | — |
+| **F6** | 整頓 | 標註 Django skills 的 htmx 段落 ✅ DONE (2026-05-16) | `django-forms`/`django-templates`/`pytest-django-patterns` | 🟡 P2 | — | — |
 | **C1** | 政策 | 寫「python-engineering 啟用/不啟用」政策 | `CLAUDE.md` 或新 `.claude/SKILLS_POLICY.md` | 🟡 P2 | — | 低 |
 
 > 註：`SKILLS_RESEARCH.md` §6.6 提到的 `CLAUDE.md` 漂移，**使用者已自行修好**
@@ -160,25 +164,25 @@
 > ③ `django-extensions` / Debug Toolbar（**套件沒裝**）。
 > 假訊號會讓 review 失焦、讓新人照錯的做。
 
-### F3 — 修 `code-quality` skill 🟠 P1 ⚠️ 部分 DONE
+### F3 — 修 `code-quality` skill 🟠 P1 ✅ DONE (2026-05-16)
 
-- **改什麼**：① 型別檢查指令 ✅ DONE（已改 `uv run pyrefly check`，含 description）；
-  ② 人工 checklist 移除「HTMX partials handle HX-Request header」這項 —— 待 P2。
-- **依賴**：P2。
+- ① 型別檢查指令 ✅（已改 `uv run pyrefly check`，含 description）
+- ② 移除「HTMX partials handle HX-Request header」checklist 行 ✅
 
-### F4 — 修 `systematic-debugging` skill 🟠 P1 ⚠️ 部分 DONE
+### F4 — 修 `systematic-debugging` skill 🟠 P1 ✅ DONE (2026-05-16)
 
-- **改什麼**：① checklist 的 `uv run pyright` ✅ DONE（已改 pyrefly）；
-  ② 移除「Django Debug Toolbar」整段（套件沒裝） —— 待動；
-  ③ 移除「Debugging HTMX」整段 —— 待 P2。
-- **依賴**：P2（htmx 段）。Debug Toolbar 段可獨立移除。
+- ① checklist `uv run pyright` ✅（已改 pyrefly）
+- ② 移除「Django Debug Toolbar」整段 ✅
+- ③ 移除「Debugging HTMX」整段 ✅
+- ④ Integration 段移除 `htmx-alpine-patterns` 行 ✅
 
-### F5 — 修本地 `code-reviewer` agent 🟠 P1 ⚠️ 部分 DONE
+### F5 — 修本地 `code-reviewer` agent 🟠 P1 ✅ DONE (2026-05-16)
 
-- **改什麼**：① Review Process 的 `uv run pyright` ✅ DONE（已改 pyrefly）；
-  ② 移除 / 標註「HTMX handling — Check `request.htmx`」相關項 —— 待 P2；
-  ③ Integration 段的 `celery-patterns` 連結在 H1 完成後即生效，不需改。
-- **依賴**：P2、（H1 讓連結生效）。
+- ① Review Process `uv run pyright` ✅（已改 pyrefly）
+- ② 「Django Views」checklist 移除 HTMX handling 行 ✅
+- ③ CORRECT view 範例移除 `if request.htmx` 分支 ✅
+- ④ Integration 段移除 `htmx-alpine-patterns` 行 ✅
+- ⑤ Integration 段的 `celery-patterns` 連結隨 H1 完成自動生效 ✅
 
 ### P1 完成備註（型別檢查器對齊 pyrefly，2026-05-16）
 
@@ -193,12 +197,15 @@
 驗證：`grep -rE "pyright|ty check" .claude/` 已無命中（LICENSE.txt 例外）。
 `pyrefly check [FILES]...` 接受檔案/目錄/glob 參數。
 
-### F6 — 標註 Django skills 的 htmx 段落 🟡 P2
+### F6 — 標註 Django skills 的 htmx 段落 🟡 P2 ✅ DONE (2026-05-16)
 
-- **改什麼**：`django-forms`、`django-templates`、`pytest-django-patterns` 各有 HTMX 段落。
-  本專案前端是純 JS fetch + `JsonResponse`，**沒有 htmx**。不必整段刪（未來可能引入），
-  但要加一行註記：「本專案目前未使用 htmx —— 以下段落暫不適用」。
-- **依賴**：P2。若 P2 決定未來要引入 htmx，這項改為「保留不動」。
+- 三個 Django skills 各於最 htmx-concentrated 的章節下，加上註記：
+  > **註**：本專案目前未使用 htmx —— 以下段落暫不適用，僅供未來引入時參考。
+- 註記位置：
+  - `django-forms/SKILL.md` —— `**HTMX handling:**` 子節下
+  - `django-templates/SKILL.md` —— `Partials and Components` 章節下
+  - `pytest-django-patterns/SKILL.md` —— `### Testing HTMX Responses` 章節下
+- htmx 內文全數保留（為未來引入留路）。
 
 ---
 
@@ -227,33 +234,33 @@
 | ID | 要決定什麼 | 選項 | 卡住誰 |
 |---|---|---|---|
 | ~~**P1**~~ | ~~型別檢查器~~ | ✅ 已拍板對齊 `pyrefly`（2026-05-16）—— pyright/ty 都不是專案實際使用工具 | — |
-| **P2** | htmx 去留 | (A) 永不引入：刪 `htmx-patterns` README 列、F6 改為刪段　/　(B) 未來會用：保留、F6 只加註記 | F2, F4, F6 |
+| ~~**P2**~~ | ~~htmx 去留~~ | ✅ 拍板「永不引入」（2026-05-16）—— README 已刪 htmx-patterns 行；F4/F5 刪 htmx 段；F6 三 Django skills 加未用註記（內文保留） | — |
 | **P3** | `django-extensions` 套件 | (A) 裝套件（skill 本身寫得好、Django 內省實用）　/　(B) 不裝：把 `django-extensions` skill 標記休眠 | —（獨立） |
 | **P4** | 品質檢查入口 | 建議：內迴圈 `fix`、PR 前 `code-quality` + 本地 `code-reviewer`；`lint`/`review` 不啟用 | C1 |
 
-> **建議**：P1 是最高優先 —— 它卡住三個整頓任務。其餘三個可平行決定。
+> **進度**：P1、P2 已拍板完成。剩餘 P3（django-extensions 套件）、P4（品質檢查鏈入口）。
 
 ---
 
 ## 7. 建議執行順序
 
 ```
-第 1 波（解鎖 + 零風險，立刻可做）
-  ├─ P1  對齊 pyrefly                ✅ DONE (2026-05-16)（含 F3/F4/F5 型別部分）
-  ├─ P2  拍板 htmx 去留              ← 解鎖 F4/F6（F2 htmx 部分已提前處理）
-  ├─ F1  卸除 uv plugin              ✅ DONE (2026-05-16)
-  └─ H1  建立 celery-patterns        ← 無依賴，最高價值
+第 1 波（解鎖 + 零風險）✅ 完成 (2026-05-16)
+  ├─ P1  對齊 pyrefly                ✅ DONE（含 F3/F4/F5 型別部分）
+  ├─ P2  拍板 htmx「永不引入」       ✅ DONE
+  ├─ F1  卸除 uv plugin              ✅ DONE
+  ├─ F2  清 README 幽靈名單          ✅ DONE
+  ├─ F3  修 code-quality             ✅ DONE
+  ├─ F4  修 systematic-debugging     ✅ DONE
+  ├─ F5  修本地 code-reviewer agent  ✅ DONE
+  ├─ F6  Django skills htmx 註記     ✅ DONE
+  └─ H1  建立 celery-patterns        ✅ DONE
 
-第 2 波（補洞 + 整頓）
-  ├─ H2  建立 storage-s3            （搭 refinement #03 一起做）
-  ├─ F2  清 README 幽靈名單
-  ├─ F3  修 code-quality
-  ├─ F4  修 systematic-debugging
-  └─ F5  修本地 code-reviewer agent
+第 2 波（補洞）
+  └─ H2  建立 storage-s3            （搭 refinement #03 一起做）
 
 第 3 波（深度 + 政策）
   ├─ H3  建立 opentelemetry-patterns
-  ├─ F6  標註 Django skills 的 htmx 段落
   ├─ C1  寫 python-engineering 啟用政策
   └─ P3  決定 django-extensions 套件
 ```
@@ -262,13 +269,13 @@
 
 ## 8. 一頁速覽
 
-**招募 3 個**（建本地 skill）：`celery-patterns`🔴、`storage-s3`🟠、`opentelemetry-patterns`🟡
+**招募 3 個**（建本地 skill）：`celery-patterns` ✅、`storage-s3`🟠、`opentelemetry-patterns`🟡
 
-**資遣 2 項** ✅：卸 `uv` plugin（done）、清 README 7 個幽靈名單（done，celery-patterns 列待 H1）
+**資遣 2 項** ✅：卸 `uv` plugin、清 README 幽靈名單（celery-patterns 連結隨 H1 自動生效）
 
-**整頓 4 個**（修假訊號）：`code-quality`、`systematic-debugging`、本地 `code-reviewer`、3 個 Django skills 的 htmx 段
+**整頓 4 個** ✅（修假訊號）：`code-quality`、`systematic-debugging`、本地 `code-reviewer`、3 個 Django skills 的 htmx 段
 
-**待決 4 案**：型別檢查器 (P0)、htmx 去留、django-extensions 套件、品質檢查鏈
+**待決**：P3 (django-extensions 套件)、P4 (品質檢查鏈入口)。P1/P2 已拍板。
 
 **不動**：9 個本地 skill 主體、2 個本地 agent、`python-engineering` plugin（留著用 8 個）、
 `caveman`（使用者偏好）、`nuxt-skills`（屬 jen-lab，非本專案）
