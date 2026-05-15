@@ -12,7 +12,8 @@ from django.views.decorators.http import require_http_methods
 
 from .forms import LoginForm, UploadForm
 from .models import Image, ImageStatus, ImageTask
-from .utils import login_required_json, public_s3
+from .decorators import login_required_json
+from .utils import public_s3
 
 # ---------- Images ----------
 

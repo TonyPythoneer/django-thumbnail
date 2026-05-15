@@ -50,21 +50,17 @@ a few issues — one of them probably a bug.
       PIL's decode error to raise `InvalidImageError`, thumbnail in the same block.
       Keep `_validate_image_buffer` only if a test still needs it as a unit (see
       task 08) — otherwise inline and delete.
-- [ ] **Extract the flush.** Move the `force_flush()` / `TracerProvider` type-check
-      into a named helper in `telemetry.py` (e.g. `flush_pending_spans()`), so
-      `tasks.py`'s `finally` is one readable call.
-- [ ] **Resolve the BSP/Simple mismatch.** Decide: keep `SimpleSpanProcessor`
-      (then the comment is wrong and `force_flush` is likely unnecessary — simplify
-      or drop it), or switch to `BatchSpanProcessor` (then the comment is right and
-      the flush is load-bearing). Whichever you pick, make the code, the comment,
-      and the README claim agree. Hand the decision to **task 01**.
-- [ ] **Span attributes.** When you touch the span code, keep using
-      `span.set_attributes(dict)` (already done at `tasks.py:85`) — do not regress
-      to repeated `set_attribute()` calls.
-- [ ] **Decide on retry status.** Either accept "FAILED during retry" as a
-      documented simplification, or add `ImageStatus.RETRYING` (a model change +
-      migration). If you add it, **task 08** must cover the polling-during-retry
-      path. If you keep it simple, write one sentence in `CLAUDE.md` §4 saying so.
+- [x] **Extract the flush.** Dropped entirely — `SimpleSpanProcessor` exports
+      synchronously on `span.end()`; `force_flush()` was a no-op. Stale BSP
+      comment removed. `TracerProvider` import removed from `tasks.py`.
+- [x] **Resolve the BSP/Simple mismatch.** Keep `SimpleSpanProcessor`. Removed
+      `force_flush()` and stale BSP comment. README claim dropped. Decision handed
+      to **task 01**.
+- [x] **Span attributes.** `span.set_attributes(dict)` kept; no regression.
+- [x] **Decide on retry status.** Adopted Opus suggestion: status stays
+      `PROCESSING` during retries; `mark_failed()` only called when
+      `retries >= max_retries`. Added `Outcome.FAIL` for terminal-failure spans.
+      Test updated to simulate exhausted retries via `apply(retries=max_retries)`.
 
 ## Acceptance
 
