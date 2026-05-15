@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING
 from celery import shared_task
 from django.conf import settings
 from opentelemetry import trace
-from opentelemetry.sdk.trace import TracerProvider
 from PIL import Image as PillowImage
 
 from .utils import internal_s3
@@ -24,6 +23,7 @@ class Outcome(StrEnum):
     DONE = "done"
     INVALID = "invalid"
     RETRY = "retry"
+    FAIL = "fail"
 
 
 def _process_thumbnail(bucket: str, image: Image) -> None:
@@ -77,15 +77,12 @@ def generate_thumbnail(self, image_task_id: str) -> None:
         task.mark_failed("invalid image file")
         span_attributes["status"] = Outcome.INVALID
     except Exception as exc:
-        task.mark_failed(str(exc))
-        span_attributes["status"] = Outcome.RETRY
+        if self.request.retries >= self.max_retries:
+            task.mark_failed(str(exc))
+            span_attributes["status"] = Outcome.FAIL
+        else:
+            span_attributes["status"] = Outcome.RETRY
         span.record_exception(exc)
         raise self.retry(exc=exc, countdown=2**self.request.retries)
     finally:
         span.set_attributes(span_attributes)
-
-        # Celery prefork workers don't inherit the BSP exporter thread after fork.
-        # Force flush so spans reach Jaeger before the worker process idles.
-        provider = trace.get_tracer_provider()
-        if isinstance(provider, TracerProvider):
-            provider.force_flush()

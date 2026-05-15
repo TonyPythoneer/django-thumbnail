@@ -14,7 +14,7 @@
 
 ## 1. Overview
 
-Async thumbnail generation. User uploads image → Django saves to MinIO → Celery task generates 300×300 thumbnail → saves back to MinIO → status tracked in PostgreSQL.
+Async thumbnail generation. User uploads image → Django saves to MinIO → Celery task generates a thumbnail → saves back to MinIO → status tracked in PostgreSQL.
 
 ---
 

@@ -41,7 +41,9 @@ class TestGenerateThumbnail:
             side_effect=Exception("connection refused"),
         ):
             with pytest.raises(Exception):
-                generate_thumbnail(str(task.id))
+                generate_thumbnail.apply(
+                    args=[str(task.id)], retries=generate_thumbnail.max_retries
+                ).get(propagate=True)
         task.refresh_from_db()
         assert task.status == ImageStatus.FAILED
 
