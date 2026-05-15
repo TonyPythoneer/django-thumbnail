@@ -14,7 +14,7 @@ pytestmark = pytest.mark.django_db
 
 
 class TestGenerateThumbnail:
-    def test_success_marks_done(self):
+    def test_success_marks_done(self) -> None:
         task = ImageTaskFactory()
         buf = make_image_buf()
         with (
@@ -26,7 +26,7 @@ class TestGenerateThumbnail:
         assert task.status == ImageStatus.DONE
         mock_upload.assert_called_once()
 
-    def test_invalid_image_marks_failed(self):
+    def test_invalid_image_marks_failed(self) -> None:
         task = ImageTaskFactory()
         bad_buf = io.BytesIO(b"not an image")
         with patch("images.tasks.internal_s3.download", return_value=bad_buf):
@@ -35,7 +35,7 @@ class TestGenerateThumbnail:
         assert task.status == ImageStatus.FAILED
         assert task.error_message == "invalid image file"
 
-    def test_s3_error_marks_failed_after_exhausting_retries(self):
+    def test_s3_error_marks_failed_after_exhausting_retries(self) -> None:
         task = ImageTaskFactory()
         with (
             patch(
@@ -48,7 +48,7 @@ class TestGenerateThumbnail:
         task.refresh_from_db()
         assert task.status == ImageStatus.FAILED
 
-    def test_s3_error_stays_processing_during_retry(self):
+    def test_s3_error_stays_processing_during_retry(self) -> None:
         task = ImageTaskFactory()
         with (
             patch(
@@ -63,7 +63,7 @@ class TestGenerateThumbnail:
         task.refresh_from_db()
         assert task.status == ImageStatus.PROCESSING
 
-    def test_thumbnail_uploaded_to_correct_key(self):
+    def test_thumbnail_uploaded_to_correct_key(self) -> None:
         task = ImageTaskFactory()
         buf = make_image_buf()
         with (

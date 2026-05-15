@@ -35,10 +35,8 @@ extend-exclude = [".claude"]
 select = ["E", "W", "F", "I", "UP", "B", "SIM", "ANN"]
 
 [tool.ruff.lint.per-file-ignores]
-"**/tests/**" = ["ANN"]
+# migrations are Django-generated; annotation would be overwritten by makemigrations
 "**/migrations/**" = ["ANN"]
-"manage.py" = ["ANN"]
-"conftest.py" = ["ANN"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "django_thumbnail.settings.test"

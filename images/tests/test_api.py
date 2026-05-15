@@ -1,9 +1,13 @@
 import json
+from collections.abc import Iterator
 from http import HTTPStatus
 from unittest.mock import patch
 
 import pytest
+from django.contrib.auth.models import User
+from django.test import Client
 from django.urls import reverse
+from pytest_django.fixtures import DjangoAssertNumQueries
 
 from images.models import Image, ImageStatus, ImageTask
 
@@ -17,7 +21,7 @@ MOCK_PRESIGN = "http://minio/presigned-url"
 
 
 @pytest.fixture(autouse=True)
-def mock_s3():
+def mock_s3() -> Iterator[None]:
     with (
         patch("images.storage.public_s3.presign_put", return_value=MOCK_PRESIGN),
         patch("images.storage.public_s3.presign_get", return_value=MOCK_PRESIGN),
@@ -31,7 +35,7 @@ class TestAuth:
     login_viewname = "auth-login"
     logout_viewname = "auth-logout"
 
-    def test_login_success(self, client, user):
+    def test_login_success(self, client: Client, user: User) -> None:
         resp = client.post(
             reverse(self.login_viewname),
             data=json.dumps({"username": user.username, "password": USER_PLAIN_PASSWORD}),
@@ -40,7 +44,7 @@ class TestAuth:
         assert resp.status_code == HTTPStatus.OK
         assert resp.json()["user"] == user.username
 
-    def test_login_invalid_credentials(self, client, user):
+    def test_login_invalid_credentials(self, client: Client, user: User) -> None:
         resp = client.post(
             reverse(self.login_viewname),
             data=json.dumps({"username": user.username, "password": "wrong"}),
@@ -48,7 +52,7 @@ class TestAuth:
         )
         assert resp.status_code == HTTPStatus.UNAUTHORIZED
 
-    def test_logout(self, auth_client):
+    def test_logout(self, auth_client: tuple[Client, User]) -> None:
         client, _ = auth_client
         resp = client.post(reverse(self.logout_viewname))
         assert resp.status_code == HTTPStatus.OK
@@ -58,7 +62,7 @@ class TestImagesAPI:
     list_viewname = "images-list"
     detail_viewname = "images-detail"
 
-    def test_create_returns_presigned_url(self, auth_client):
+    def test_create_returns_presigned_url(self, auth_client: tuple[Client, User]) -> None:
         client, _ = auth_client
         resp = client.post(
             reverse(self.list_viewname),
@@ -70,7 +74,7 @@ class TestImagesAPI:
         assert Image.objects.filter(id=data["image_id"]).exists()
         assert data["upload_url"] == MOCK_PRESIGN
 
-    def test_create_missing_filename(self, auth_client):
+    def test_create_missing_filename(self, auth_client: tuple[Client, User]) -> None:
         client, _ = auth_client
         resp = client.post(
             reverse(self.list_viewname),
@@ -79,7 +83,7 @@ class TestImagesAPI:
         )
         assert resp.status_code == HTTPStatus.BAD_REQUEST
 
-    def test_list_own_images(self, auth_client):
+    def test_list_own_images(self, auth_client: tuple[Client, User]) -> None:
         client, user = auth_client
         ImageFactory(user=user)
         ImageFactory(user=user)
@@ -88,7 +92,11 @@ class TestImagesAPI:
         assert resp.status_code == HTTPStatus.OK
         assert len(resp.json()["images"]) == 2
 
-    def test_list_query_count_constant(self, auth_client, django_assert_num_queries):
+    def test_list_query_count_constant(
+        self,
+        auth_client: tuple[Client, User],
+        django_assert_num_queries: DjangoAssertNumQueries,
+    ) -> None:
         client, user = auth_client
         for _ in range(5):
             img = ImageFactory(user=user)
@@ -98,21 +106,23 @@ class TestImagesAPI:
         with django_assert_num_queries(4):  # session + user + images + tasks prefetch
             client.get(reverse(self.list_viewname))
 
-    def test_delete_image(self, auth_client):
+    def test_delete_image(self, auth_client: tuple[Client, User]) -> None:
         client, user = auth_client
         image = ImageFactory(user=user)
         resp = client.delete(reverse(self.detail_viewname, kwargs={"image_id": image.id}))
         assert resp.status_code == HTTPStatus.OK
         assert not Image.objects.filter(id=image.id).exists()
 
-    def test_delete_other_user_image(self, auth_client, other_user):
+    def test_delete_other_user_image(
+        self, auth_client: tuple[Client, User], other_user: User
+    ) -> None:
         client, _ = auth_client
         image = ImageFactory(user=other_user)
         resp = client.delete(reverse(self.detail_viewname, kwargs={"image_id": image.id}))
         assert resp.status_code == HTTPStatus.NOT_FOUND
         assert Image.objects.filter(id=image.id).exists()
 
-    def test_unauthenticated(self, client):
+    def test_unauthenticated(self, client: Client) -> None:
         resp = client.get(reverse(self.list_viewname))
         assert resp.status_code == HTTPStatus.UNAUTHORIZED
 
@@ -121,7 +131,7 @@ class TestTasksAPI:
     list_viewname = "tasks-create"
     detail_viewname = "tasks-detail"
 
-    def test_create_task(self, auth_client):
+    def test_create_task(self, auth_client: tuple[Client, User]) -> None:
         client, user = auth_client
         image = ImageFactory(user=user)
         with (
@@ -138,7 +148,7 @@ class TestTasksAPI:
         data = resp.json()
         assert ImageTask.objects.filter(id=data["task_id"]).exists()
 
-    def test_create_task_missing_image_id(self, auth_client):
+    def test_create_task_missing_image_id(self, auth_client: tuple[Client, User]) -> None:
         client, _ = auth_client
         resp = client.post(
             reverse(self.list_viewname),
@@ -147,7 +157,9 @@ class TestTasksAPI:
         )
         assert resp.status_code == HTTPStatus.BAD_REQUEST
 
-    def test_create_task_other_user_image(self, auth_client, other_user):
+    def test_create_task_other_user_image(
+        self, auth_client: tuple[Client, User], other_user: User
+    ) -> None:
         client, _ = auth_client
         image = ImageFactory(user=other_user)
         resp = client.post(
@@ -157,7 +169,7 @@ class TestTasksAPI:
         )
         assert resp.status_code == HTTPStatus.NOT_FOUND
 
-    def test_get_task_status(self, auth_client):
+    def test_get_task_status(self, auth_client: tuple[Client, User]) -> None:
         client, user = auth_client
         image = ImageFactory(user=user)
         task = ImageTaskFactory(image=image, status=ImageStatus.DONE)
@@ -165,14 +177,14 @@ class TestTasksAPI:
         assert resp.status_code == HTTPStatus.OK
         assert resp.json()["status"] == ImageStatus.DONE
 
-    def test_get_task_other_user(self, auth_client, other_user):
+    def test_get_task_other_user(self, auth_client: tuple[Client, User], other_user: User) -> None:
         client, _ = auth_client
         image = ImageFactory(user=other_user)
         task = ImageTaskFactory(image=image)
         resp = client.get(reverse(self.detail_viewname, kwargs={"task_id": task.id}))
         assert resp.status_code == HTTPStatus.NOT_FOUND
 
-    def test_cancel_task(self, auth_client):
+    def test_cancel_task(self, auth_client: tuple[Client, User]) -> None:
         client, user = auth_client
         image = ImageFactory(user=user)
         task = ImageTaskFactory(image=image, status=ImageStatus.PENDING)
@@ -182,7 +194,7 @@ class TestTasksAPI:
         task.refresh_from_db()
         assert task.status == ImageStatus.FAILED
 
-    def test_unauthenticated(self, client):
+    def test_unauthenticated(self, client: Client) -> None:
         resp = client.post(
             reverse(self.list_viewname),
             data=json.dumps({}),

@@ -17,7 +17,7 @@ class UserFactory(factory.django.DjangoModelFactory):
     email = factory.LazyAttribute(lambda o: o.username)
 
     @factory.post_generation
-    def password(self, create, extracted, **kwargs):
+    def password(self, create: bool, extracted: str | None, **kwargs: object) -> None:
         pwd = extracted or USER_PLAIN_PASSWORD
         self.set_password(pwd)
         if create:
