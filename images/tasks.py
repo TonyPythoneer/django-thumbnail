@@ -28,26 +28,21 @@ class Outcome(StrEnum):
 
 def _process_thumbnail(bucket: str, image: Image) -> None:
     buf = internal_s3.download(bucket, image.original_key)
-    _validate_image_buffer(buf)
-    out = _create_thumbnail_buffer(buf)
+    out = _make_thumbnail(buf)
     internal_s3.upload(bucket, image.thumbnail_key, out)
 
 
-def _validate_image_buffer(buf: io.BytesIO) -> None:
+def _make_thumbnail(buf: io.BytesIO) -> io.BytesIO:
+    # thumbnail() decodes the file, so verify() would be redundant.
+    # Invalid bytes surface as UnidentifiedImageError/OSError.
     try:
         with PillowImage.open(buf) as img:
-            img.verify()
-        buf.seek(0)
-    except Exception as e:
-        raise InvalidImageError("invalid image file") from e
-
-
-def _create_thumbnail_buffer(original_buffer: io.BytesIO) -> io.BytesIO:
-    with PillowImage.open(original_buffer) as img:
-        img.thumbnail(THUMBNAIL_SIZE)
-        out = io.BytesIO()
-        img.save(out, format=img.format)
-        out.seek(0)
+            img.thumbnail(THUMBNAIL_SIZE)
+            out = io.BytesIO()
+            img.save(out, format=img.format)
+    except (PillowImage.UnidentifiedImageError, OSError) as exc:
+        raise InvalidImageError("invalid image file") from exc
+    out.seek(0)
     return out
 
 

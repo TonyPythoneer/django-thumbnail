@@ -46,10 +46,10 @@ a few issues — one of them probably a bug.
 - [ ] **Fix `THUMBNAIL_SIZE`.** Confirm the intended size (CLAUDE.md says 300×300)
       and set it. Update `test_task_utils.py` expectations if needed (it should
       still assert "output respects `THUMBNAIL_SIZE`", just with the right value).
-- [ ] **Single open.** Merge validation into the thumbnail path: open once, catch
-      PIL's decode error to raise `InvalidImageError`, thumbnail in the same block.
-      Keep `_validate_image_buffer` only if a test still needs it as a unit (see
-      task 08) — otherwise inline and delete.
+- [x] **Single open.** Merged `_validate_image_buffer` + `_create_thumbnail_buffer`
+      into one `_make_thumbnail(buf)`. Catches `UnidentifiedImageError` + `OSError`
+      → `InvalidImageError`. `verify()` dropped (lazy decode happens anyway during
+      `thumbnail()`/`save()`). `test_task_utils.py` updated.
 - [x] **Extract the flush.** Dropped entirely — `SimpleSpanProcessor` exports
       synchronously on `span.end()`; `force_flush()` was a no-op. Stale BSP
       comment removed. `TracerProvider` import removed from `tasks.py`.
