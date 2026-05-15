@@ -1,21 +1,15 @@
 # Image Thumbnail Worker — Claude Context
 
-## 0. Current State
+## 0. Known Pitfalls
 
-**Branch**: `ty/thumbnail-worker-setup`
-**Phase**: 4 🔄 — 4.1-4.5 done; next: 4.6 CeleryInstrumentor wiring
-**Task file**: `tasks/THUMBNAIL_WORKER.md` — read at session start, update as tasks complete
-
-**Known pitfalls**:
 - `django.tasks` has no Redis backend/worker → use Celery
 - Never call `manage.py` directly → use `make` commands
-- Django commands / imports need `cd django_thumbnail` first — `DJANGO_SETTINGS_MODULE=django_thumbnail.settings.test` only resolves from inside that directory
 
 ---
 
 ## 1. Overview
 
-Async thumbnail generation. User uploads image → Django saves to MinIO → Celery task generates 300×300 thumbnail → saves back to MinIO → status tracked in PostgreSQL.
+Async thumbnail generation. User uploads image → Django saves to MinIO → Celery task generates a thumbnail → saves back to MinIO → status tracked in PostgreSQL.
 
 ---
 
@@ -23,7 +17,7 @@ Async thumbnail generation. User uploads image → Django saves to MinIO → Cel
 
 **App** (Django):
 - Worker: Celery + Redis broker, `@shared_task`
-- Storage: `django-storages[s3]` + boto3 → MinIO
+- Storage: `boto3` → MinIO (no django-storages)
 - Frontend: `django-bootstrap5`, 3 pages
 - Observability: OpenTelemetry → Jaeger, `telemetry.py`
 
@@ -31,37 +25,37 @@ Async thumbnail generation. User uploads image → Django saves to MinIO → Cel
 
 ---
 
-## 3. Project Structure (current)
+## 3. Project Structure
 
 ```
 django-thumbnail/
 ├── CLAUDE.md
 ├── Makefile                     ← need commands? read this
 ├── docker-compose.yml
+├── Dockerfile.dev
 ├── pyproject.toml
-├── tasks/
-│   └── THUMBNAIL_WORKER.md     ← task status & architecture decisions
+├── manage.py
 ├── django_thumbnail/
-│   ├── django_thumbnail/
-│   │   ├── settings/
-│   │   │   ├── base.py          ← env vars & defaults here
-│   │   │   ├── local.py
-│   │   │   └── test.py          ← InMemoryStorage, CELERY_TASK_ALWAYS_EAGER
-│   │   ├── celery.py
-│   │   └── urls.py
-│   └── images/                  ← main app
-│       ├── models.py            ← need schema? read this (Image + ImageTask)
-│       ├── migrations/          ✅
-│       ├── admin.py             ← ✅ 1.3
-│       ├── views.py
-│       ├── urls.py
-│       ├── tasks.py             ← Celery task: generate_thumbnail (⬜ 2.1)
-│       ├── storage.py           ← MinIO helpers
-│       ├── management/commands/
-│       │   ├── create_test_users.py    ← ✅ 1.4
-│       │   ├── generate_placeholders.py ← ✅ 1.5
-│       │   └── createbucket.py         ← ✅ 1.6
-│       └── tests/
+│   ├── settings/
+│   │   ├── base.py              ← env vars & defaults here
+│   │   ├── local.py
+│   │   └── test.py              ← eager Celery, OTel disabled
+│   ├── celery.py
+│   ├── telemetry.py
+│   ├── urls.py
+│   └── wsgi.py / asgi.py
+└── images/                      ← main app
+    ├── models.py                ← need schema? read this (Image + ImageTask)
+    ├── migrations/
+    ├── admin.py
+    ├── apps.py
+    ├── forms.py
+    ├── views.py · urls.py
+    ├── tasks.py                 ← Celery task: generate_thumbnail
+    ├── storage.py               ← S3 helpers (MinIO)
+    ├── decorators.py            ← login_required_json
+    ├── management/commands/     ← create_bucket, create_test_users, clean_db, clean_bucket, ...
+    └── tests/
 ```
 
 ---
@@ -78,12 +72,9 @@ django-thumbnail/
 
 ## 5. Claude Execution Rules
 
-1. **Session start**: read `tasks/THUMBNAIL_WORKER.md` for phase + task status
-2. **Commands**: read `Makefile`, never construct `manage.py` calls manually
-3. **Schema**: read `images/models.py`, don't trust memory
-4. **Before implementing**: restate task, ask if ambiguous
-5. **After each task**: mark complete in `tasks/THUMBNAIL_WORKER.md`, update §0
-6. **Scope change**: update `tasks/THUMBNAIL_WORKER.md` first, then implement
-7. **No web search** unless user allows
-8. **Idempotency**: all Celery tasks safe to retry
-9. **Owner isolation**: every queryset scoped to `request.user`
+1. **Commands**: read `Makefile`, never construct `manage.py` calls manually
+2. **Schema**: read `images/models.py`, don't trust memory
+3. **Before implementing**: restate task, ask if ambiguous
+4. **No web search** unless user allows
+5. **Idempotency**: all Celery tasks safe to retry
+6. **Owner isolation**: every queryset scoped to `request.user`

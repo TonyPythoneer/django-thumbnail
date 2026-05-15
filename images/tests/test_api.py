@@ -19,10 +19,10 @@ MOCK_PRESIGN = "http://minio/presigned-url"
 @pytest.fixture(autouse=True)
 def mock_s3():
     with (
-        patch("images.utils.public_s3.presign_put", return_value=MOCK_PRESIGN),
-        patch("images.utils.public_s3.presign_get", return_value=MOCK_PRESIGN),
-        patch("images.utils.internal_s3.delete"),
-        patch("images.utils.internal_s3.upload"),
+        patch("images.storage.public_s3.presign_put", return_value=MOCK_PRESIGN),
+        patch("images.storage.public_s3.presign_get", return_value=MOCK_PRESIGN),
+        patch("images.storage.internal_s3.delete"),
+        patch("images.storage.internal_s3.upload"),
     ):
         yield
 
@@ -34,9 +34,7 @@ class TestAuth:
     def test_login_success(self, client, user):
         resp = client.post(
             reverse(self.login_viewname),
-            data=json.dumps(
-                {"username": user.username, "password": USER_PLAIN_PASSWORD}
-            ),
+            data=json.dumps({"username": user.username, "password": USER_PLAIN_PASSWORD}),
             content_type="application/json",
         )
         assert resp.status_code == HTTPStatus.OK
@@ -90,21 +88,27 @@ class TestImagesAPI:
         assert resp.status_code == HTTPStatus.OK
         assert len(resp.json()["images"]) == 2
 
+    def test_list_query_count_constant(self, auth_client, django_assert_num_queries):
+        client, user = auth_client
+        for _ in range(5):
+            img = ImageFactory(user=user)
+            ImageTaskFactory(image=img)
+        # Warm the response once so per-test setup (session/auth) is steady.
+        client.get(reverse(self.list_viewname))
+        with django_assert_num_queries(4):  # session + user + images + tasks prefetch
+            client.get(reverse(self.list_viewname))
+
     def test_delete_image(self, auth_client):
         client, user = auth_client
         image = ImageFactory(user=user)
-        resp = client.delete(
-            reverse(self.detail_viewname, kwargs={"image_id": image.id})
-        )
+        resp = client.delete(reverse(self.detail_viewname, kwargs={"image_id": image.id}))
         assert resp.status_code == HTTPStatus.OK
         assert not Image.objects.filter(id=image.id).exists()
 
     def test_delete_other_user_image(self, auth_client, other_user):
         client, _ = auth_client
         image = ImageFactory(user=other_user)
-        resp = client.delete(
-            reverse(self.detail_viewname, kwargs={"image_id": image.id})
-        )
+        resp = client.delete(reverse(self.detail_viewname, kwargs={"image_id": image.id}))
         assert resp.status_code == HTTPStatus.NOT_FOUND
         assert Image.objects.filter(id=image.id).exists()
 
@@ -173,9 +177,7 @@ class TestTasksAPI:
         image = ImageFactory(user=user)
         task = ImageTaskFactory(image=image, status=ImageStatus.PENDING)
         with patch("images.views.AsyncResult"):
-            resp = client.delete(
-                reverse(self.detail_viewname, kwargs={"task_id": task.id})
-            )
+            resp = client.delete(reverse(self.detail_viewname, kwargs={"task_id": task.id}))
         assert resp.status_code == HTTPStatus.OK
         task.refresh_from_db()
         assert task.status == ImageStatus.FAILED

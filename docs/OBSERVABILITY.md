@@ -28,17 +28,25 @@ Goal: a single `trace_id` shared across every span above, with correct parent/ch
 **What we saw.** Jaeger had a `POST api/tasks/` trace with two spans (HTTP root + `apply_async`) and a *different* trace starting at `run/generate_thumbnail`. No parent link.
 
 **Why.**
-`opentelemetry-instrumentation-celery` injects a `traceparent` header into the Celery message *only* if the instrumentor has been activated in the **publisher** process. The Django process had `DjangoInstrumentor` wired in `apps.py:ready()`, but `CeleryInstrumentor` was not. Without it, `apply_async` published a message with no W3C trace context, so the worker (which *did* have `CeleryInstrumentor` active via the `opentelemetry-instrument` wrapper) extracted nothing and started a fresh root span.
+`opentelemetry-instrumentation-celery` injects a `traceparent` header into the Celery message *only* if the instrumentor has been activated in the **publisher** process. The Django process had `DjangoInstrumentor` wired, but `CeleryInstrumentor` was not. Without it, `apply_async` published a message with no W3C trace context, so the worker (which *did* have `CeleryInstrumentor` active via the `opentelemetry-instrument` wrapper) extracted nothing and started a fresh root span.
 
-**Fix.** Wire `CeleryInstrumentor` programmatically in `images/apps.py:ready()`, alongside `DjangoInstrumentor`. The Django process now patches Celery's `Producer.publish` to inject `traceparent`, and the worker's `CeleryInstrumentor` extracts it on consume — same `trace_id`, correct parent.
+**Fix.** Wire `CeleryInstrumentor` programmatically alongside `DjangoInstrumentor` in `django_thumbnail/telemetry.py`, called from `CoreConfig.ready()` (`django_thumbnail/apps.py`) via `setup_otel_for_django_web()`. The Django web process now patches Celery's `Producer.publish` to inject `traceparent`, and the worker's `CeleryInstrumentor` extracts it on consume — same `trace_id`, correct parent.
+
+`ready()` runs in *every* process that calls `django.setup()` — including the Celery worker parent and management commands. To avoid inheriting a live gRPC exporter across `fork()` in the worker (and to keep `migrate`/`shell` quiet), `ready()` gates the call on a `_is_web_server_process()` check that only fires for `runserver` / `gunicorn` / `uvicorn`. The worker keeps its per-child `worker_process_init` signal handler.
+
+`CoreConfig` is a project-level `AppConfig` whose only job is cross-cutting init (OTel, future Sentry/metrics). Domain apps (`images/apps.py`, future `users/apps.py`, etc.) stay stock — no instrumentation responsibility leaks into them.
 
 ```python
-# django_thumbnail/images/apps.py
-from opentelemetry.instrumentation.celery import CeleryInstrumentor
-from opentelemetry.instrumentation.django import DjangoInstrumentor
+# django_thumbnail/apps.py
+class CoreConfig(AppConfig):
+    name = "django_thumbnail"
+    label = "core"
 
-DjangoInstrumentor().instrument()
-CeleryInstrumentor().instrument()
+    def ready(self) -> None:
+        if not _is_web_server_process():
+            return
+        from django_thumbnail.telemetry import setup_otel_for_django_web
+        setup_otel_for_django_web()
 ```
 
 ---
@@ -84,17 +92,7 @@ This eliminates the thread hop and the S3 span becomes a child of whichever span
 
 **Why.** `opentelemetry-instrument` activates auto-instrumentors via a sitecustomize hook before `manage.py main()` runs. That hook touches `django.conf.settings` early. Under our configuration, the access path caused `LazySettings._wrapped` to be populated with `global_settings` defaults — `DEBUG=False`, `ALLOWED_HOSTS=[]` — before `DJANGO_SETTINGS_MODULE` was honoured. By the time `manage.py` ran `os.environ.setdefault("DJANGO_SETTINGS_MODULE", ...)`, `_wrapped` was already set and the setdefault did nothing.
 
-**Fix.** Drop the `opentelemetry-instrument` CLI wrapper for `make dev`. Initialize OpenTelemetry **programmatically** inside `images/apps.py:ready()`, which Django invokes after settings are loaded properly. Same approach for the worker — `make worker` no longer uses the wrapper either. The wrapper was redundant given we already call:
-
-```python
-setup_telemetry(
-    service_name=settings.OTEL_SERVICE_NAME,
-    otlp_endpoint=settings.OTEL_EXPORTER_OTLP_ENDPOINT,
-)
-DjangoInstrumentor().instrument()
-CeleryInstrumentor().instrument()
-BotocoreInstrumentor().instrument()
-```
+**Fix.** Drop the `opentelemetry-instrument` CLI wrapper. Initialize OpenTelemetry **programmatically** inside `ImagesConfig.ready()` (`images/apps.py`), which Django invokes after settings are loaded properly. The web container's `runserver`, plus any `gunicorn`/`uvicorn` entrypoint, satisfies the `_is_web_server_process()` gate; the Celery worker is initialised per-child via the `worker_process_init` signal in `django_thumbnail/celery.py`. The wrapper was redundant given we already call `setup_otel_for_django_web()` / `setup_otel_for_celery_worker()` explicitly.
 
 ---
 
@@ -104,7 +102,7 @@ BotocoreInstrumentor().instrument()
 
 **Why.** The default `BatchSpanProcessor` buffers spans in memory and flushes on a timer or buffer threshold. `SIGTERM` from `pkill` did not give it time to flush, so the buffered parent spans were lost while already-flushed children remained.
 
-**Fix.** Switched to `SimpleSpanProcessor` in `telemetry.py` — it exports each span synchronously on `end()`. Trade-off: higher per-span latency. Acceptable for dev. Switch back to `BatchSpanProcessor` for production, where `SIGTERM` handling via `provider.shutdown()` flushes gracefully.
+**Fix.** Switched to `SimpleSpanProcessor` in `telemetry.py` — it exports each span synchronously on `end()`. Trade-off: higher per-span latency. Acceptable for this project's scale; a production deployment with high throughput would switch to `BatchSpanProcessor` and ensure `provider.shutdown()` is called on graceful stop.
 
 ---
 
@@ -112,14 +110,18 @@ BotocoreInstrumentor().instrument()
 
 **What we saw.** Jaeger's service dropdown listed one service. Spans from both the web process and the worker were tagged identically, making it hard to read the trace.
 
-**Fix.** Set `OTEL_SERVICE_NAME` per process in the `Makefile`:
+**Fix.** Set `OTEL_SERVICE_NAME` per process in `docker-compose.yml`:
 
-```makefile
-dev:
-	$(DJANGO_ENV) OTEL_SERVICE_NAME=django-thumbnail-app $(MANAGE) runserver
+```yaml
+  web:
+    environment:
+      <<: *app-env
+      OTEL_SERVICE_NAME: django-thumbnail-app
 
-worker:
-	cd django_thumbnail && $(DJANGO_ENV) OTEL_SERVICE_NAME=django-thumbnail-worker uv run celery -A django_thumbnail worker -l info
+  worker:
+    environment:
+      <<: *app-env
+      OTEL_SERVICE_NAME: django-thumbnail-worker
 ```
 
 `base.py` reads `OTEL_SERVICE_NAME` from the environment and passes it into the `Resource` attached to the `TracerProvider`. Two distinct `service.name` resources, one shared trace.

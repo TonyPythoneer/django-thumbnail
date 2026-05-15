@@ -2,6 +2,7 @@ import io
 from unittest.mock import patch
 
 import pytest
+from celery.exceptions import Retry
 
 from images.models import ImageStatus
 from images.tasks import generate_thumbnail
@@ -34,16 +35,33 @@ class TestGenerateThumbnail:
         assert task.status == ImageStatus.FAILED
         assert task.error_message == "invalid image file"
 
-    def test_s3_error_marks_failed(self):
+    def test_s3_error_marks_failed_after_exhausting_retries(self):
         task = ImageTaskFactory()
-        with patch(
-            "images.tasks.internal_s3.download",
-            side_effect=Exception("connection refused"),
+        with (
+            patch(
+                "images.tasks.internal_s3.download",
+                side_effect=ConnectionError("connection refused"),
+            ),
+            pytest.raises(ConnectionError),
         ):
-            with pytest.raises(Exception):
-                generate_thumbnail(str(task.id))
+            generate_thumbnail.apply(args=[str(task.id)], retries=generate_thumbnail.max_retries)
         task.refresh_from_db()
         assert task.status == ImageStatus.FAILED
+
+    def test_s3_error_stays_processing_during_retry(self):
+        task = ImageTaskFactory()
+        with (
+            patch(
+                "images.tasks.internal_s3.download",
+                side_effect=ConnectionError("connection refused"),
+            ),
+            pytest.raises(Retry),
+        ):
+            generate_thumbnail.apply(
+                args=[str(task.id)], retries=generate_thumbnail.max_retries - 1
+            )
+        task.refresh_from_db()
+        assert task.status == ImageStatus.PROCESSING
 
     def test_thumbnail_uploaded_to_correct_key(self):
         task = ImageTaskFactory()

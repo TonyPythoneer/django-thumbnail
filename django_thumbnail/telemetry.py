@@ -18,9 +18,7 @@ def _setup_provider() -> None:
     tracer_provider = TracerProvider(resource=resource)
     tracer_provider.add_span_processor(
         SimpleSpanProcessor(
-            OTLPSpanExporter(
-                endpoint=settings.OTEL_EXPORTER_OTLP_ENDPOINT, insecure=True
-            )
+            OTLPSpanExporter(endpoint=settings.OTEL_EXPORTER_OTLP_ENDPOINT, insecure=True)
         )
     )
     trace.set_tracer_provider(tracer_provider)

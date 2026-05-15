@@ -19,8 +19,8 @@ from django.conf import settings
 from django.urls import reverse
 from PIL import Image as PILImage
 
-from images.models import ImageStatus
-from images.utils import internal_s3
+from images.models import Image, ImageStatus
+from images.storage import internal_s3
 
 BASE_URL = settings.SMOKE_DJANGO_WEB_URL
 JAEGER_BASE = settings.SMOKE_JAEGER_BASE_URL
@@ -87,9 +87,7 @@ class TestImageThumbnailFlow:
             headers=csrf_headers,
             timeout=10,
         )
-        assert resp.status_code == HTTPStatus.CREATED, (
-            f"create image failed: {resp.text}"
-        )
+        assert resp.status_code == HTTPStatus.CREATED, f"create image failed: {resp.text}"
         data = resp.json()
         assert data["upload_url"], "upload_url missing"
         return data["image_id"], data["upload_url"]
@@ -112,9 +110,7 @@ class TestImageThumbnailFlow:
             headers=csrf_headers,
             timeout=10,
         )
-        assert resp.status_code == HTTPStatus.CREATED, (
-            f"create task failed: {resp.text}"
-        )
+        assert resp.status_code == HTTPStatus.CREATED, f"create task failed: {resp.text}"
         return resp.json()["task_id"]
 
     def _poll_until_done(self, session: requests.Session, task_id: str) -> None:
@@ -133,12 +129,9 @@ class TestImageThumbnailFlow:
         raise AssertionError(f"timed out waiting for task (last status={status})")
 
     def _assert_thumbnail_exists(self, upload_url: str) -> None:
-        # original key: users/<id>/<uuid>/<stem>.<ext>
-        # thumbnail key: users/<id>/<uuid>/<stem>_thumbnail.<ext>
         object_key = urllib.parse.urlparse(upload_url).path.lstrip("/")
         bucket, _, original_key = object_key.partition("/")
-        stem, dot, ext = original_key.rpartition(".")
-        thumbnail_key = f"{stem}_thumbnail{dot}{ext}"
+        thumbnail_key = Image.format_thumbnail_key_from_original(original_key)
         internal_s3._client.head_object(Bucket=bucket, Key=original_key)
         internal_s3._client.head_object(Bucket=bucket, Key=thumbnail_key)
 
@@ -146,9 +139,7 @@ class TestImageThumbnailFlow:
         time.sleep(5)  # BSP flush buffer
         data = _query_jaeger_trace(image_id)
         assert data["data"], f"no Jaeger trace for image_id={image_id}"
-        service_names = [
-            p["serviceName"] for p in data["data"][0]["processes"].values()
-        ]
+        service_names = [p["serviceName"] for p in data["data"][0]["processes"].values()]
         assert "django-thumbnail-app" in service_names, (
             f"missing web span. services={service_names}"
         )

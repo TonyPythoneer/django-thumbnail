@@ -7,11 +7,7 @@ import sys
 
 def main():
     """Run administrative tasks."""
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "django_thumbnail.settings")
-
-    from django_thumbnail.telemetry import setup_otel_for_django_web
-
-    setup_otel_for_django_web()
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "django_thumbnail.settings.local")
 
     try:
         from django.core.management import execute_from_command_line

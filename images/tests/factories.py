@@ -5,7 +5,6 @@ from django.contrib.auth.models import User
 
 from images.models import Image, ImageStatus, ImageTask
 
-
 USER_PLAIN_PASSWORD = "password"
 
 
