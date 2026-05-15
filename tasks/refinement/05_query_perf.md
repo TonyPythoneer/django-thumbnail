@@ -51,7 +51,12 @@ latest task for this image".
 
 - [x] Add/extend tests in **task 08** that assert query counts with
       `django_assert_num_queries` — landed in `test_views_html.py` + `test_models.py`.
-- [ ] Manual check: load `/` with ~20 images via Django Debug Toolbar (user-driven).
+- [~] Manual check: load `/` with ~20 images via Django Debug Toolbar (user-driven).
+      *Skipped — covered by automated assertions in task 08:*
+      `test_gallery_query_count_constant` (4 queries with 5 images + tasks),
+      `test_list_query_count_constant` (same shape on the JSON API),
+      `test_latest_task_uses_prefetch_cache`. Programmatic proof that query count
+      stays flat as image count grows beats a one-off visual check.
 - [x] `make test` green.
 
 ## Readability guardrail

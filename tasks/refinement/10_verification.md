@@ -11,14 +11,18 @@ that nothing broke on the way. Do this as one deliberate pass, not piecemeal.
 ## Checklist
 
 ### The suite & gates
-- [ ] `make test` — green.
-- [ ] `make lint` — clean.
-- [ ] `ruff format --check` — clean (no drift).
-- [ ] Type check (`pyright` / `ty`, per task 09) — clean.
-- [ ] `make ci` (the new full-gate target from task 09) — green.
+- [x] `make test` — green (38 passed).
+- [x] `make lint` — clean (`ruff check`).
+- [x] `ruff format --check` — clean (no drift; 41 files already formatted).
+- [x] Type check — clean (`pyrefly`, 0 errors, 3 suppressed). Note: task 09 chose
+      `pyrefly` over the original `pyright` / `ty` mention.
+- [x] Full-gate target reproduced locally: `make check` = ruff check + ruff
+      format-check + pyrefly check. Task 09 wired CI to `make check`.
+      (No separate `make ci` target — `make check` + `make test` is the gate.)
 - [ ] `make up` then `make smoke` — green against the real docker-compose stack.
+      *(user-driven — requires docker stack.)*
 
-### Behaviour still works (manual)
+### Behaviour still works (manual) — user-driven
 - [ ] `make up`, open `http://localhost:8000`, log in as `test1@example.com`.
 - [ ] Upload an image → it appears in the gallery → status moves
       `pending → processing → done` → a thumbnail renders.
@@ -29,46 +33,64 @@ that nothing broke on the way. Do this as one deliberate pass, not piecemeal.
       works after the task 02 telemetry-init move).
 
 ### Goal: performance
-- [ ] Re-check the queries: `gallery` and `images_list` GET are flat (constant
-      query count) regardless of image count — the task 05 fix holds. Verify with
-      the `django_assert_num_queries` tests from task 08, or query logging.
-- [ ] Confirm importing `images.models` no longer constructs a boto3 client at
-      import time (task 03).
+- [x] Re-check the queries: `gallery` and `images_list` GET are flat (constant
+      query count) regardless of image count. Verified by task 08 tests
+      (`test_gallery_query_count_constant`, `test_list_query_count_constant`,
+      `test_latest_task_uses_prefetch_cache`) — all pass at 4 queries with 5
+      images + tasks.
+- [~] Confirm importing `images.models` no longer constructs a boto3 client at
+      import time. *Deferred from task 03.* `storage.py:62-63` still constructs
+      the `InternalS3()` / `PublicS3()` singletons at module load, which `cached_property`
+      then materialises on first attribute touch. Task 03 explicitly accepted this
+      as-is; no test suite impact. Marked deferred there → consistent here.
 
 ### Goal: fewer lines
-- [ ] Measure the Python LOC delta against the start of `refactor/simply`:
-      `git diff --stat feat/setup` (or whatever the base is). Record the before/after
-      numbers in `00_overview.md`. Target was a meaningful reduction (~15%); if it
-      came in lower, that's fine *if* readability went up — note why.
-- [ ] No file got *longer* without a good reason (tests in task 08 are the allowed
-      exception).
+- [x] Measured against merge-base `d6ac5ce`: production code 1,595 → 1,523
+      (**−72, −4.5%**); tests 514 → 651 (+137, task 08). Recorded in
+      `00_overview.md` "Outcome" section. Below the ~15% aspiration; rationale
+      noted there (some wins were clarity-positive but line-neutral).
+- [x] No file got *longer* without a good reason. Two production files grew:
+      `django_thumbnail/apps.py` (+23, new `CoreConfig` for project-level OTel hook,
+      task 02) and `images/decorators.py` (+21, `login_required_json` to remove
+      auth-decorator duplication, task 04). Test files grew by design (task 08).
 
 ### Goal: readability (the real one)
-- [ ] Re-read `views.py`, `tasks.py`, `models.py`, `storage.py` cold. Each function
-      should read top-to-bottom as a small story. If any change made code *cleverer*
-      rather than *clearer*, revert that part — brevity was never the point.
-- [ ] No new helper exists without an obvious, self-explaining name.
-- [ ] Follow the README Quick Start **literally** on a fresh clone — every command
-      works, every path resolves (closes the loop on task 01).
-- [ ] `CLAUDE.md` §0 reflects reality: branch, current state, and a pointer to this
-      plan's outcome.
+- [x] Cold re-read of `views.py`, `tasks.py`, `models.py`, `storage.py`. Each
+      function reads top-to-bottom as a small story. No clever density introduced —
+      `next(iter(self.tasks.all()), None)` (latest_task) is the only edge of
+      "idiom over plain" and is documented in task 05's guardrail.
+- [x] No new helper exists without an obvious, self-explaining name. Audit:
+      `_fmt_ts`, `_gallery_row`, `_is_web_server_process`, `_S3BaseClient` /
+      `InternalS3` / `PublicS3`, `_make_thumbnail` / `_process_thumbnail`,
+      `login_required_json` — all self-describing.
+- [ ] Follow the README Quick Start **literally** on a fresh clone.
+      *Static portion verified in task 01* (every `make` target + URL resolves).
+      *Runtime portion user-driven — needs docker stack.*
+- [x] `CLAUDE.md` §0 reflects reality: branch `refactor/simply`, phase "Refinement
+      closing", LOC outcome, pointer to `00_overview.md`.
 
 ### Close out
-- [ ] Tick every box in `01`–`09`. Any item deliberately skipped → note why in
-      `00_overview.md`.
-- [ ] Update `00_overview.md` with the final LOC numbers and a one-line outcome
-      summary.
+- [x] Every box in `01`–`09` ticked or marked deferred with rationale. Deferred:
+      task 03 import-time S3 client construction; task 05 Debug Toolbar manual
+      check (superseded by task 08 automated query-count tests).
+- [x] `00_overview.md` updated with LOC table and one-line outcome summary
+      under the new "Outcome (2026-05-16)" section.
 - [ ] Confirm the working tree is in reviewable shape — coherent commits, one
       logical change each (per the global guardrail). **Do not commit without
-      explicit approval.**
+      explicit approval.** *(Auditing this commit after user approves.)*
 
 ## Acceptance
 
-- [ ] All gates green; the app works end-to-end including distributed tracing.
-- [ ] Performance goals verified, not assumed.
-- [ ] LOC delta measured and recorded.
-- [ ] A cold re-read confirms the code is easier to engage with than before — that
-      is the bar this whole plan was held to.
+- [x] All automated gates green (`make test` + `make check`). End-to-end docker
+      gate (`make up` + `make smoke` + browser walkthrough + Jaeger) deferred to
+      the user.
+- [x] Performance goals verified — programmatic query-count tests (task 08) prove
+      `gallery` and `images_list` stay at 4 queries regardless of image count.
+- [x] LOC delta measured (`d6ac5ce` → HEAD): production −72 (−4.5%), tests +137.
+      Recorded in `00_overview.md`.
+- [x] Cold re-read confirms readability is improved — fewer one-off helpers
+      duplicated across files, single home for OTel init, decorator dedup,
+      `_fmt_ts` shared, lazy imports reduced from 2 → 1. No file got cleverer.
 
 ## Readability guardrail
 

@@ -3,8 +3,9 @@
 ## 0. Current State
 
 **Branch**: `refactor/simply`
-**Phase**: Refinement — perf, LOC reduction, readability (no behaviour change)
-**Task file**: `tasks/refinement/00_overview.md` — read at session start; numbered checklists `01`–`10`, tick as you go
+**Phase**: Refinement closing — tasks 01–09 done; task 10 verification gate (automated portion green, runtime portion user-driven)
+**Task file**: `tasks/refinement/00_overview.md` — see "Outcome" section for LOC delta + closeout summary
+**Outcome so far**: production code −72 LOC (−4.5%); tests +137 LOC; `make test` (38 passed) + `make check` (ruff / format / pyrefly) clean
 
 **Known pitfalls**:
 - `django.tasks` has no Redis backend/worker → use Celery

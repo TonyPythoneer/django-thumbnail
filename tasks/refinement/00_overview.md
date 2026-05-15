@@ -17,6 +17,37 @@ are surgical, low-risk improvements.
 
 ---
 
+## Outcome (2026-05-16)
+
+All tasks 01–09 closed (see each `NN_*.md` for details). Task 10 covers final
+verification; runtime/docker checks deferred to user.
+
+**LOC delta vs merge-base `d6ac5ce` (start of `refactor/simply`):**
+
+| Slice | base | head | Δ |
+|---|---|---|---|
+| Production code (excl `migrations/`, `tests/`) | 1,595 | 1,523 | **−72 (−4.5%)** |
+| Test code | 514 | 651 | **+137** *(task 08, expected)* |
+| All Python (excl `migrations/`) | 2,109 | 2,174 | +65 |
+
+The −4.5% on production code is below the original ~15% aspiration. Reason:
+several wins were *clarity-positive but line-neutral* (e.g. task 06's single-PIL-
+open refactor) and a couple of deliberate additions paid for themselves —
+`django_thumbnail/apps.py` (+23, project-level OTel init via `CoreConfig`) and
+`images/decorators.py` (+21, `login_required_json` deduplication). Test suite
+grew on purpose to close the headline-feature coverage gap.
+
+Deferred / skipped (intentional, with rationale in the respective task files):
+
+- **05** Debug Toolbar manual check — superseded by automated
+  `django_assert_num_queries` tests added in task 08.
+- **03** S3 client construction at import time — accepted as-is; no test impact.
+- **10** runtime gates (`make up`, `make smoke`, Jaeger browser check, fresh-clone
+  Quick Start) — user-driven; cannot be exercised without spinning up the docker
+  stack.
+
+---
+
 ## Findings summary
 
 | # | Task file | Lens | Risk | Why it matters |
