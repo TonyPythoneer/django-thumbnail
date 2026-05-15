@@ -183,7 +183,7 @@ Before claiming fixed:
 - [ ] Root cause identified
 - [ ] Reproduction test passes
 - [ ] Full test suite passes (`uv run pytest`)
-- [ ] No type errors (`uv run pyright`)
+- [ ] No type errors (`uv run pyrefly check`)
 - [ ] No lint errors (`uv run ruff check .`)
 
 ## Red Flags

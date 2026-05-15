@@ -38,9 +38,9 @@
    - **Command**: `uv run pytest <file> -x -q`
    - **Behavior**: Runs tests in modified file, shows last 30 lines of output, non-blocking
 
-4. **Pyright Type Check**: Type-check Python files (30s timeout)
+4. **Pyrefly Type Check**: Type-check Python files (30s timeout)
    - **Triggers**: After editing `.py` files
-   - **Command**: `uv run pyright`
+   - **Command**: `uv run pyrefly check`
    - **Behavior**: Shows first 20 lines of errors only, non-blocking, exit 0
 
 5. **Ruff Linting**: Lint Python files (30s timeout)
