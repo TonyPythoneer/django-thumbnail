@@ -6,7 +6,7 @@ from images.models import Image, ImageTask
 class Command(BaseCommand):
     help = "Clear all images and tasks from database"
 
-    def handle(self, *args, **options):
+    def handle(self, *args: object, **options: object) -> None:
         img_count = Image.objects.count()
         task_count = ImageTask.objects.count()
 
