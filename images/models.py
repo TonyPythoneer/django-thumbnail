@@ -9,6 +9,10 @@ from django.db import models
 from .storage import internal_s3, public_s3
 
 
+def _fmt_ts(dt) -> str:
+    return dt.strftime("%Y-%m-%d %H:%M:%S") if dt else "?"
+
+
 class ImageStatus(models.TextChoices):
     PENDING = "pending", "Pending"
     PROCESSING = "processing", "Processing"
@@ -36,10 +40,8 @@ class Image(models.Model):
         indexes = [models.Index(fields=["user", "-created_at"])]
 
     def __str__(self) -> str:
-        ts = self.created_at.strftime("%Y-%m-%d %H:%M:%S") if self.created_at else "?"
-        return (
-            f"{self.original_filename} ({self.user}) [{ts}] — {self.current_status()}"
-        )
+        # e.g. "photo.jpg (alice) [2026-05-15 10:30:00] — done"
+        return f"{self.original_filename} ({self.user}) [{_fmt_ts(self.created_at)}] — {self.current_status()}"
 
     def latest_task(self) -> "ImageTask | None":
         return next(iter(self.tasks.all()), None)
@@ -78,8 +80,7 @@ class Image(models.Model):
 
     def delete_from_storage(self) -> None:
         for key in [self.original_key, self.thumbnail_key]:
-            if key:
-                internal_s3.delete(settings.AWS_STORAGE_BUCKET_NAME, key)
+            internal_s3.delete(settings.AWS_STORAGE_BUCKET_NAME, key)
 
     def to_dict(self) -> dict:
         return {
@@ -90,7 +91,6 @@ class Image(models.Model):
             "original_url": public_s3.presign_get(self.original_key),
             "created_at": self.created_at.isoformat(),
         }
-
 
 
 class ImageTask(models.Model):
@@ -109,8 +109,8 @@ class ImageTask(models.Model):
         indexes = [models.Index(fields=["image", "-created_at"])]
 
     def __str__(self) -> str:
-        ts = self.created_at.strftime("%Y-%m-%d %H:%M:%S") if self.created_at else "?"
-        return f"ImageTask({self.image.original_filename}, {self.image.user}, {self.status}) [{ts}]"
+        # e.g. "ImageTask(photo.jpg, alice, done) [2026-05-15 10:30:00]"
+        return f"ImageTask({self.image.original_filename}, {self.image.user}, {self.status}) [{_fmt_ts(self.created_at)}]"
 
     def mark_processing(self, celery_task_id: str) -> None:
         self.status = ImageStatus.PROCESSING
