@@ -1,5 +1,4 @@
 import io
-import json
 from http import HTTPMethod, HTTPStatus
 
 from celery.result import AsyncResult
@@ -12,7 +11,7 @@ from django.views.decorators.http import require_http_methods
 
 from .forms import LoginForm, UploadForm
 from .models import Image, ImageStatus, ImageTask
-from .decorators import login_required_json
+from .decorators import login_required_json, parse_json_body
 from .storage import public_s3
 
 # ---------- Images ----------
@@ -22,12 +21,9 @@ from .storage import public_s3
 @require_http_methods([HTTPMethod.GET, HTTPMethod.POST])
 def images_list(request: HttpRequest) -> JsonResponse:
     if request.method == HTTPMethod.POST:
-        try:
-            body = json.loads(request.body or b"{}")
-        except json.JSONDecodeError:
-            return JsonResponse(
-                {"error": "invalid json"}, status=HTTPStatus.BAD_REQUEST
-            )
+        body = parse_json_body(request)
+        if body is None:
+            return JsonResponse({"error": "invalid json"}, status=HTTPStatus.BAD_REQUEST)
         filename = body.get("filename")
         if not filename:
             return JsonResponse(
@@ -62,9 +58,8 @@ def images_detail(request: HttpRequest, image_id: str) -> JsonResponse:
 @login_required_json
 @require_http_methods([HTTPMethod.POST])
 def tasks_create(request: HttpRequest) -> JsonResponse:
-    try:
-        body = json.loads(request.body or b"{}")
-    except json.JSONDecodeError:
+    body = parse_json_body(request)
+    if body is None:
         return JsonResponse({"error": "invalid json"}, status=HTTPStatus.BAD_REQUEST)
     image_id = body.get("image_id")
     if not image_id:
@@ -106,9 +101,8 @@ def tasks_detail(request: HttpRequest, task_id: str) -> JsonResponse:
 @csrf_exempt
 @require_http_methods([HTTPMethod.POST])
 def auth_login(request: HttpRequest) -> JsonResponse:
-    try:
-        body = json.loads(request.body or b"{}")
-    except json.JSONDecodeError:
+    body = parse_json_body(request)
+    if body is None:
         return JsonResponse({"error": "invalid json"}, status=HTTPStatus.BAD_REQUEST)
     username = body.get("username") or body.get("email")
     password = body.get("password")
@@ -130,6 +124,20 @@ def auth_logout(request: HttpRequest) -> JsonResponse:
 
 
 # ---------- HTML Views ----------
+
+
+def _gallery_row(img: Image, task) -> dict:
+    return {
+        "id": str(img.id),
+        "original_filename": img.original_filename,
+        "status": task.status if task else ImageStatus.PENDING,
+        "task_id": str(task.id) if task else "",
+        "original_url": public_s3.presign_get(img.original_key) if img.original_key else None,
+        "thumbnail_url": public_s3.presign_get(img.thumbnail_key)
+        if task and task.status == ImageStatus.DONE and img.thumbnail_key
+        else None,
+        "created_at": img.created_at,
+    }
 
 
 def html_login(request: HttpRequest):
@@ -158,24 +166,7 @@ def html_logout(request: HttpRequest):
 @login_required(login_url="login")
 def gallery(request: HttpRequest):
     images_qs = Image.objects.for_user(request.user).prefetch_related("tasks")
-    rows = []
-    for img in images_qs:
-        task = img.latest_task()
-        rows.append(
-            {
-                "id": str(img.id),
-                "original_filename": img.original_filename,
-                "status": task.status if task else ImageStatus.PENDING,
-                "task_id": str(task.id) if task else "",
-                "original_url": public_s3.presign_get(img.original_key)
-                if img.original_key
-                else None,
-                "thumbnail_url": public_s3.presign_get(img.thumbnail_key)
-                if task and task.status == ImageStatus.DONE and img.thumbnail_key
-                else None,
-                "created_at": img.created_at,
-            }
-        )
+    rows = [_gallery_row(img, img.latest_task()) for img in images_qs]
     return render(request, "images/gallery.html", {"images": rows})
 
 

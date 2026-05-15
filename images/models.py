@@ -82,7 +82,6 @@ class Image(models.Model):
                 internal_s3.delete(settings.AWS_STORAGE_BUCKET_NAME, key)
 
     def to_dict(self) -> dict:
-
         return {
             "id": str(self.id),
             "original_filename": self.original_filename,
@@ -95,6 +94,7 @@ class Image(models.Model):
             else None,
             "created_at": self.created_at.isoformat(),
         }
+
 
 
 class ImageTask(models.Model):
