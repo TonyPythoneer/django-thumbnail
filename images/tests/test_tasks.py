@@ -1,4 +1,5 @@
 import io
+from collections.abc import Callable
 from unittest.mock import patch
 
 import pytest
@@ -7,64 +8,77 @@ from celery.exceptions import Retry
 from images.models import ImageStatus
 from images.tasks import generate_thumbnail
 
-from .factories import ImageTaskFactory
+from .factories import make_image_task
 from .utils import make_image_buf
 
 pytestmark = pytest.mark.django_db
 
+MAX_RETRIES = generate_thumbnail.max_retries
+
 
 class TestGenerateThumbnail:
-    def test_success_marks_done(self) -> None:
-        task = ImageTaskFactory()
-        buf = make_image_buf()
-        with (
-            patch("images.tasks.internal_s3.download", return_value=buf),
-            patch("images.tasks.internal_s3.upload") as mock_upload,
-        ):
-            generate_thumbnail(str(task.id))
-        task.refresh_from_db()
-        assert task.status == ImageStatus.DONE
-        mock_upload.assert_called_once()
-
-    def test_invalid_image_marks_failed(self) -> None:
-        task = ImageTaskFactory()
-        bad_buf = io.BytesIO(b"not an image")
-        with patch("images.tasks.internal_s3.download", return_value=bad_buf):
-            generate_thumbnail(str(task.id))
-        task.refresh_from_db()
-        assert task.status == ImageStatus.FAILED
-        assert task.error_message == "invalid image file"
-
-    def test_s3_error_marks_failed_after_exhausting_retries(self) -> None:
-        task = ImageTaskFactory()
-        with (
-            patch(
-                "images.tasks.internal_s3.download",
-                side_effect=ConnectionError("connection refused"),
+    @pytest.mark.parametrize(
+        ("download_factory", "retries", "expected_status", "expected_error", "expected_raises"),
+        [
+            (
+                lambda: {"return_value": make_image_buf()},
+                None,
+                ImageStatus.DONE,
+                "",
+                None,
             ),
-            pytest.raises(ConnectionError),
-        ):
-            generate_thumbnail.apply(args=[str(task.id)], retries=generate_thumbnail.max_retries)
-        task.refresh_from_db()
-        assert task.status == ImageStatus.FAILED
-
-    def test_s3_error_stays_processing_during_retry(self) -> None:
-        task = ImageTaskFactory()
-        with (
-            patch(
-                "images.tasks.internal_s3.download",
-                side_effect=ConnectionError("connection refused"),
+            (
+                lambda: {"return_value": io.BytesIO(b"not an image")},
+                None,
+                ImageStatus.FAILED,
+                "invalid image file",
+                None,
             ),
-            pytest.raises(Retry),
+            (
+                lambda: {"side_effect": ConnectionError("connection refused")},
+                MAX_RETRIES,
+                ImageStatus.FAILED,
+                "",
+                ConnectionError,
+            ),
+            (
+                lambda: {"side_effect": ConnectionError("connection refused")},
+                MAX_RETRIES - 1,
+                ImageStatus.PROCESSING,
+                "",
+                Retry,
+            ),
+        ],
+        ids=["success", "invalid_image", "retry_exhausted", "retry_pending"],
+    )
+    def test_status_outcomes(
+        self,
+        download_factory: Callable[[], dict[str, object]],
+        retries: int | None,
+        expected_status: ImageStatus,
+        expected_error: str,
+        expected_raises: type[Exception] | None,
+    ) -> None:
+        task = make_image_task()
+        with (
+            patch("images.tasks.internal_s3.download", **download_factory()),
+            patch("images.tasks.internal_s3.upload"),
         ):
-            generate_thumbnail.apply(
-                args=[str(task.id)], retries=generate_thumbnail.max_retries - 1
-            )
+            if expected_raises is not None:
+                with pytest.raises(expected_raises):
+                    generate_thumbnail.apply(args=[str(task.id)], retries=retries)
+            elif retries is not None:
+                generate_thumbnail.apply(args=[str(task.id)], retries=retries)
+            else:
+                generate_thumbnail(str(task.id))
+
         task.refresh_from_db()
-        assert task.status == ImageStatus.PROCESSING
+        assert task.status == expected_status
+        if expected_error:
+            assert task.error_message == expected_error
 
     def test_thumbnail_uploaded_to_correct_key(self) -> None:
-        task = ImageTaskFactory()
+        task = make_image_task()
         buf = make_image_buf()
         with (
             patch("images.tasks.internal_s3.download", return_value=buf),

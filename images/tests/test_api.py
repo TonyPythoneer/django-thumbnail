@@ -11,7 +11,7 @@ from pytest_django.fixtures import DjangoAssertNumQueries
 
 from images.models import Image, ImageStatus, ImageTask
 
-from .factories import USER_PLAIN_PASSWORD, ImageFactory, ImageTaskFactory
+from .factories import USER_PLAIN_PASSWORD, make_image, make_image_task
 from .utils import make_image_buf
 
 pytestmark = pytest.mark.django_db
@@ -97,9 +97,9 @@ class TestImagesAPI:
 
     def test_list_own_images(self, auth_client: tuple[Client, User]) -> None:
         client, user = auth_client
-        ImageFactory(user=user)
-        ImageFactory(user=user)
-        ImageFactory()  # other user
+        make_image(user=user)
+        make_image(user=user)
+        make_image()  # other user
         resp = client.get(reverse(self.list_viewname))
         assert resp.status_code == HTTPStatus.OK
         assert len(resp.json()["images"]) == 2
@@ -111,8 +111,8 @@ class TestImagesAPI:
     ) -> None:
         client, user = auth_client
         for _ in range(5):
-            img = ImageFactory(user=user)
-            ImageTaskFactory(image=img)
+            img = make_image(user=user)
+            make_image_task(image=img)
         # Warm the response once so per-test setup (session/auth) is steady.
         client.get(reverse(self.list_viewname))
         with django_assert_num_queries(4):  # session + user + images + tasks prefetch
@@ -136,7 +136,7 @@ class TestImagesAPI:
     ) -> None:
         client, user = auth_client
         owner = user if owned else other_user
-        image = ImageFactory(user=owner)
+        image = make_image(user=owner)
         resp = client.delete(reverse(self.detail_viewname, kwargs={"image_id": image.id}))
         assert resp.status_code == expected_status
         assert Image.objects.filter(id=image.id).exists() == image_remains
@@ -169,10 +169,10 @@ class TestTasksAPI:
     ) -> None:
         client, user = auth_client
         if payload_kind == "own":
-            image = ImageFactory(user=user)
+            image = make_image(user=user)
             payload: dict[str, str] = {"image_id": str(image.id)}
         elif payload_kind == "other_user":
-            image = ImageFactory(user=other_user)
+            image = make_image(user=other_user)
             payload = {"image_id": str(image.id)}
         else:
             payload = {}
@@ -208,8 +208,8 @@ class TestTasksAPI:
     ) -> None:
         client, user = auth_client
         owner = user if owned else other_user
-        image = ImageFactory(user=owner)
-        task = ImageTaskFactory(image=image, status=ImageStatus.DONE)
+        image = make_image(user=owner)
+        task = make_image_task(image=image, status=ImageStatus.DONE)
         resp = client.get(reverse(self.detail_viewname, kwargs={"task_id": task.id}))
         assert resp.status_code == expected_status
         if expected_status == HTTPStatus.OK:
@@ -217,8 +217,8 @@ class TestTasksAPI:
 
     def test_cancel_task(self, auth_client: tuple[Client, User]) -> None:
         client, user = auth_client
-        image = ImageFactory(user=user)
-        task = ImageTaskFactory(image=image, status=ImageStatus.PENDING)
+        image = make_image(user=user)
+        task = make_image_task(image=image, status=ImageStatus.PENDING)
         with patch("images.views.AsyncResult"):
             resp = client.delete(reverse(self.detail_viewname, kwargs={"task_id": task.id}))
         assert resp.status_code == HTTPStatus.OK

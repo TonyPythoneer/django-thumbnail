@@ -10,7 +10,7 @@ from pytest_django.fixtures import DjangoAssertNumQueries
 
 from images.models import Image
 
-from .factories import ImageFactory, ImageTaskFactory
+from .factories import make_image, make_image_task
 
 pytestmark = pytest.mark.django_db
 
@@ -36,9 +36,9 @@ class TestGallery:
 
     def test_gallery_shows_own_images_only(self, auth_client: tuple[Client, User]) -> None:
         client, user = auth_client
-        ImageFactory(user=user)
-        ImageFactory(user=user)
-        ImageFactory()  # other user
+        make_image(user=user)
+        make_image(user=user)
+        make_image()  # other user
         resp = client.get(reverse("gallery"))
         assert resp.status_code == HTTPStatus.OK
         assert len(resp.context["images"]) == 2
@@ -50,8 +50,8 @@ class TestGallery:
     ) -> None:
         client, user = auth_client
         for _ in range(5):
-            img = ImageFactory(user=user)
-            ImageTaskFactory(image=img)
+            img = make_image(user=user)
+            make_image_task(image=img)
         with django_assert_num_queries(4):  # session auth + user + images + tasks prefetch
             client.get(reverse("gallery"))
 
@@ -92,7 +92,7 @@ class TestHtmlLogin:
 class TestImageDelete:
     def test_delete_own_image(self, auth_client: tuple[Client, User]) -> None:
         client, user = auth_client
-        image = ImageFactory(user=user)
+        image = make_image(user=user)
         resp = client.post(reverse("image-delete", kwargs={"image_id": image.id}))
         assert resp.status_code == HTTPStatus.FOUND
         assert not Image.objects.filter(id=image.id).exists()
@@ -101,7 +101,7 @@ class TestImageDelete:
         self, auth_client: tuple[Client, User], other_user: User
     ) -> None:
         client, _ = auth_client
-        image = ImageFactory(user=other_user)
+        image = make_image(user=other_user)
         resp = client.post(reverse("image-delete", kwargs={"image_id": image.id}))
         assert resp.status_code == HTTPStatus.FOUND  # redirects to gallery
         assert Image.objects.filter(id=image.id).exists()  # not deleted

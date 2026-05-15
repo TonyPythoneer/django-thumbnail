@@ -1,4 +1,5 @@
 import uuid
+from typing import cast
 
 import factory
 from django.contrib.auth.models import User
@@ -44,3 +45,15 @@ class ImageTaskFactory(factory.django.DjangoModelFactory):
 
     image = factory.SubFactory(ImageFactory)
     status = ImageStatus.PENDING
+
+
+def make_user(**kwargs: object) -> User:
+    return cast(User, UserFactory(**kwargs))
+
+
+def make_image(**kwargs: object) -> Image:
+    return cast(Image, ImageFactory(**kwargs))
+
+
+def make_image_task(**kwargs: object) -> ImageTask:
+    return cast(ImageTask, ImageTaskFactory(**kwargs))
