@@ -44,9 +44,7 @@ class TestGallery:
         for _ in range(5):
             img = ImageFactory(user=user)
             ImageTaskFactory(image=img)
-        with django_assert_num_queries(
-            4
-        ):  # session auth + user + images + tasks prefetch
+        with django_assert_num_queries(4):  # session auth + user + images + tasks prefetch
             client.get(reverse("gallery"))
 
 

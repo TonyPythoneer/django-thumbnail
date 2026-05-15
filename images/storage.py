@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 class _S3BaseClient:
     def __init__(self, endpoint_url: str, config: Config | None = None):
-        self._client: "S3Client" = boto3.client(
+        self._client: S3Client = boto3.client(
             "s3",
             endpoint_url=endpoint_url,
             aws_access_key_id=settings.AWS_ACCESS_KEY_ID,

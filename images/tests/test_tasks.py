@@ -37,27 +37,29 @@ class TestGenerateThumbnail:
 
     def test_s3_error_marks_failed_after_exhausting_retries(self):
         task = ImageTaskFactory()
-        with patch(
-            "images.tasks.internal_s3.download",
-            side_effect=Exception("connection refused"),
+        with (
+            patch(
+                "images.tasks.internal_s3.download",
+                side_effect=ConnectionError("connection refused"),
+            ),
+            pytest.raises(ConnectionError),
         ):
-            with pytest.raises(Exception):
-                generate_thumbnail.apply(
-                    args=[str(task.id)], retries=generate_thumbnail.max_retries
-                )
+            generate_thumbnail.apply(args=[str(task.id)], retries=generate_thumbnail.max_retries)
         task.refresh_from_db()
         assert task.status == ImageStatus.FAILED
 
     def test_s3_error_stays_processing_during_retry(self):
         task = ImageTaskFactory()
-        with patch(
-            "images.tasks.internal_s3.download",
-            side_effect=Exception("connection refused"),
+        with (
+            patch(
+                "images.tasks.internal_s3.download",
+                side_effect=ConnectionError("connection refused"),
+            ),
+            pytest.raises(Retry),
         ):
-            with pytest.raises(Retry):
-                generate_thumbnail.apply(
-                    args=[str(task.id)], retries=generate_thumbnail.max_retries - 1
-                )
+            generate_thumbnail.apply(
+                args=[str(task.id)], retries=generate_thumbnail.max_retries - 1
+            )
         task.refresh_from_db()
         assert task.status == ImageStatus.PROCESSING
 

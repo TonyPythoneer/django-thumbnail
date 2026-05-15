@@ -18,6 +18,21 @@ dependencies = [
     "psycopg[binary]>=3.3.4",
 ]
 
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+extend-exclude = [".claude"]
+
+[tool.ruff.lint]
+# Keep the set small and deliberate. Each rule earns its place.
+#   E, W — pycodestyle (style errors/warnings)
+#   F    — pyflakes (undefined names, unused imports)
+#   I    — isort (import ordering)
+#   UP   — pyupgrade (modern syntax for the pinned Python)
+#   B    — flake8-bugbear (likely bugs)
+#   SIM  — flake8-simplify (obvious simplifications)
+select = ["E", "W", "F", "I", "UP", "B", "SIM"]
+
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "django_thumbnail.settings.test"
 pythonpath = ["."]

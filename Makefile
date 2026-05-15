@@ -1,4 +1,4 @@
-.PHONY: shell test smoke check fix up-infra up down logs-app logs-infra test-image-upload clean-db clean-bucket clean-all help
+.PHONY: shell test smoke check fix migrate up-infra up down logs-app logs-infra test-image-upload clean-db clean-bucket clean-all help
 
 # ============================================================
 # Config
@@ -12,6 +12,9 @@ DJANGO_SETTINGS_LOCAL = DJANGO_SETTINGS_MODULE=$(PROJECT).settings.local
 # ============================================================
 shell:              ## Django shell (requires: make up)
 	docker compose exec web python manage.py shell
+
+migrate:            ## Apply DB migrations (requires: make up)
+	docker compose exec web python manage.py migrate
 
 # ============================================================
 # Code quality

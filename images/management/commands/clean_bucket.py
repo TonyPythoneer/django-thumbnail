@@ -26,6 +26,4 @@ class Command(BaseCommand):
                 self.s3.delete_object(Bucket=bucket, Key=obj["Key"])
                 count += 1
 
-        self.stdout.write(
-            self.style.SUCCESS(f"✓ Cleared bucket ({count} objects deleted)")
-        )
+        self.stdout.write(self.style.SUCCESS(f"✓ Cleared bucket ({count} objects deleted)"))

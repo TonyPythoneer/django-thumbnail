@@ -25,14 +25,14 @@ class ImageStatus(models.TextChoices):
 
 
 class ImageQuerySet(models.QuerySet["Image"]):
-    def for_user(self, user: User) -> "ImageQuerySet":
+    def for_user(self, user: User) -> ImageQuerySet:
         return self.filter(user=user)
 
 
 class Image(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="images")
-    tasks: "RelatedManager[ImageTask]"
+    tasks: RelatedManager[ImageTask]
     original_filename = models.CharField(max_length=255)
     original_key = models.CharField(max_length=512)
     thumbnail_key = models.CharField(max_length=512)
@@ -46,9 +46,12 @@ class Image(models.Model):
 
     def __str__(self) -> str:
         # e.g. "photo.jpg (alice) [2026-05-15 10:30:00] — done"
-        return f"{self.original_filename} ({self.user}) [{_fmt_ts(self.created_at)}] — {self.current_status()}"
+        return (
+            f"{self.original_filename} ({self.user}) "
+            f"[{_fmt_ts(self.created_at)}] — {self.current_status()}"
+        )
 
-    def latest_task(self) -> "ImageTask | None":
+    def latest_task(self) -> ImageTask | None:
         return next(iter(self.tasks.all()), None)
 
     def current_status(self) -> str:
@@ -67,7 +70,7 @@ class Image(models.Model):
         return f"{path.parent}/{stem}_thumbnail{path.suffix}"
 
     @classmethod
-    def create_with_key(cls, user: User, filename: str) -> "Image":
+    def create_with_key(cls, user: User, filename: str) -> Image:
         image_id = uuid.uuid4()
         original_key = cls.format_key(user.pk, image_id, filename)
         thumbnail_key = cls.format_thumbnail_key_from_original(original_key)
@@ -115,7 +118,10 @@ class ImageTask(models.Model):
 
     def __str__(self) -> str:
         # e.g. "ImageTask(photo.jpg, alice, done) [2026-05-15 10:30:00]"
-        return f"ImageTask({self.image.original_filename}, {self.image.user}, {self.status}) [{_fmt_ts(self.created_at)}]"
+        return (
+            f"ImageTask({self.image.original_filename}, {self.image.user}, "
+            f"{self.status}) [{_fmt_ts(self.created_at)}]"
+        )
 
     def mark_processing(self, celery_task_id: str) -> None:
         self.status = ImageStatus.PROCESSING
@@ -132,7 +138,7 @@ class ImageTask(models.Model):
         self.save(update_fields=["status", "error_message", "updated_at"])
 
     @classmethod
-    def create_and_dispatch(cls, image: "Image") -> "ImageTask":
+    def create_and_dispatch(cls, image: Image) -> ImageTask:
         from .tasks import (
             generate_thumbnail,
         )  # local import: tasks.py imports ImageTask from models.py (circular)

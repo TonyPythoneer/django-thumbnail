@@ -83,6 +83,6 @@ def generate_thumbnail(self, image_task_id: str) -> None:
         else:
             span_attributes["status"] = Outcome.RETRY
         span.record_exception(exc)
-        raise self.retry(exc=exc, countdown=2**self.request.retries)
+        raise self.retry(exc=exc, countdown=2**self.request.retries) from exc
     finally:
         span.set_attributes(span_attributes)

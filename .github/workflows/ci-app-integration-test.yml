@@ -36,10 +36,10 @@ jobs:
       - name: Install dependencies
         run: uv sync --group dev
 
-      - name: Lint
-        run: uv run ruff check
+      - name: Check (lint + format + types)
+        run: make check
 
       - name: Test
         env:
           DJANGO_SETTINGS_MODULE: django_thumbnail.settings.test
-        run: uv run pytest
+        run: make test

@@ -34,39 +34,35 @@ The project showcases tooling discipline (`uv`, `ruff`, `pytest-django`,
 
 ## Checklist
 
-- [ ] **Add `[tool.ruff]` to `pyproject.toml`.** At minimum: `target-version`
-      matching the Python pin, an explicit `line-length`, and a deliberate
-      `[tool.ruff.lint] select` (the current code already passes — capture the
-      intended rule set rather than relying on defaults that can shift between
-      ruff releases). Keep it small and commented; this is config a human reads.
-- [ ] **Add `ruff format --check` to CI** (`ci-app-integration-test.yml`) as a step
-      alongside `ruff check`.
-- [ ] **Add a type-check step to CI.** Run `pyright` (or `ty` — see open question)
-      against the project. Expect to fix a few annotations; budget for it. If the
-      type checker surfaces real issues, fold the fixes into the relevant earlier
-      task rather than piling them here.
-- [ ] **Decide `pytest-cov`'s fate.** Either:
-      - wire it up — add `--cov=images --cov=django_thumbnail` to `addopts` and a
-        `--cov-fail-under=N` threshold (pick a realistic `N` given task 08's new
-        tests), or
-      - drop it from the `dev` group if you don't want a coverage gate.
-- [ ] **Make the two CI workflows consistent** — same `uv sync` invocation,
-      same step style.
-- [ ] **Add a `make ci` (or `make check`) target** that runs the full gate locally:
-      `ruff check` + `ruff format --check` + type check + `pytest`. Point CI at the
-      same commands so local and CI cannot drift. Hand the target name to **task 01**
-      for the README.
-- [ ] **Add a `make migrate` target** (and any other target the README/docs assume
-      to exist) — or, in task 01, rewrite the docs to the real targets. Don't leave
-      the gap; close it on one side.
+- [x] **`[tool.ruff]` added.** `target-version = "py314"`, `line-length = 100`,
+      `lint.select = ["E", "W", "F", "I", "UP", "B", "SIM"]` with rationale comments.
+      Code adjusted to pass: split long `__str__` f-strings, `raise ... from exc`
+      on Celery retry, narrowed `Exception` → `ConnectionError` in tests.
+- [x] **`ruff format --check` in CI** via `make check` (CI now runs `make check`).
+- [x] **Type checker chosen: pyrefly.** Migrated `pyrightconfig.json` → `pyrefly.toml`
+      via `pyrefly init`. Dropped `pyright` dev dep. Added type annotations + casts
+      in `models.py`/`views.py` so `uv run pyrefly check` passes with 0 errors.
+      Zed IDE wired to pyrefly LSP via `.venv/bin/pyrefly lsp` + `ruff` LSP for
+      format-on-save (`.zed/settings.json`). **CI step still pending.**
+- [x] **`pytest-cov` removed** from dev group (decided against coverage gate for now).
+- [x] **CI workflows consistent** — both use `uv sync --group dev` + `setup-uv@v5`
+      with `enable-cache: true`.
+- [x] **`make check` + `make fix` targets added.** `make check` =
+      `ruff check` + `ruff format --check` + `pyrefly check` (CI-safe, read-only).
+      `make fix` = `ruff check --fix` + `ruff format`. CI still needs to be pointed
+      at `make check` (next item).
+- [x] **CI points at `make check` + `make test`** — local and CI run identical commands.
+      Hand `make check` to **task 01** for the README.
+- [x] **`make migrate` added** (`docker compose exec web python manage.py migrate`).
+      Other doc gaps → task 01.
 
 ## Acceptance
 
-- [ ] `pyproject.toml` has a deliberate, commented `[tool.ruff]` section.
-- [ ] CI fails on: lint error, format drift, type error, test failure.
-- [ ] `pytest-cov` is either enforced with a threshold or removed — no dead dep.
-- [ ] The two CI workflows install dependencies the same way.
-- [ ] `make ci` reproduces the CI gate locally and passes.
+- [x] `pyproject.toml` has a deliberate, commented `[tool.ruff]` section.
+- [x] CI fails on: lint error, format drift, type error, test failure.
+- [x] `pytest-cov` removed — no dead dep.
+- [x] The two CI workflows install dependencies the same way.
+- [x] `make check` reproduces the CI gate locally and passes.
 
 ## Readability guardrail
 
@@ -77,9 +73,7 @@ green.
 
 ## Open questions
 
-- **Type checker: `pyright` or `ty`?** `pyrightconfig.json` already exists, so
-  `pyright` is the path of least resistance. But the project's skills/tooling lean
-  Astral (`uv`, `ruff`) — `ty` (Astral's checker) would be consistent. Pick one and
-  delete the other's config so there's no ambiguity.
+- **Type checker: ~~`pyright` or `ty`~~ → `pyrefly`.** Resolved. `pyrefly.toml`
+  is now the single source of truth; `pyrightconfig.json` deleted.
 - What coverage threshold is realistic *after* task 08? Suggest setting it once
   task 08's tests land, not before.

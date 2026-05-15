@@ -87,9 +87,7 @@ class TestImageThumbnailFlow:
             headers=csrf_headers,
             timeout=10,
         )
-        assert resp.status_code == HTTPStatus.CREATED, (
-            f"create image failed: {resp.text}"
-        )
+        assert resp.status_code == HTTPStatus.CREATED, f"create image failed: {resp.text}"
         data = resp.json()
         assert data["upload_url"], "upload_url missing"
         return data["image_id"], data["upload_url"]
@@ -112,9 +110,7 @@ class TestImageThumbnailFlow:
             headers=csrf_headers,
             timeout=10,
         )
-        assert resp.status_code == HTTPStatus.CREATED, (
-            f"create task failed: {resp.text}"
-        )
+        assert resp.status_code == HTTPStatus.CREATED, f"create task failed: {resp.text}"
         return resp.json()["task_id"]
 
     def _poll_until_done(self, session: requests.Session, task_id: str) -> None:
@@ -143,9 +139,7 @@ class TestImageThumbnailFlow:
         time.sleep(5)  # BSP flush buffer
         data = _query_jaeger_trace(image_id)
         assert data["data"], f"no Jaeger trace for image_id={image_id}"
-        service_names = [
-            p["serviceName"] for p in data["data"][0]["processes"].values()
-        ]
+        service_names = [p["serviceName"] for p in data["data"][0]["processes"].values()]
         assert "django-thumbnail-app" in service_names, (
             f"missing web span. services={service_names}"
         )

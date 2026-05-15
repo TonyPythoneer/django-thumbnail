@@ -4,9 +4,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # ── Security ─────────────────────────────────────────────────
-SECRET_KEY = os.environ.get(
-    "SECRET_KEY", "django-insecure-dev-only-change-in-production"
-)
+SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-dev-only-change-in-production")
 
 DEBUG = False
 
@@ -73,9 +71,7 @@ CELERY_TASK_SERIALIZER = "json"
 
 # ── Auth ─────────────────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
-    },
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
@@ -101,17 +97,13 @@ AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID", "minioadmin")
 AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "minioadmin")
 AWS_STORAGE_BUCKET_NAME = os.environ.get("AWS_STORAGE_BUCKET_NAME", "thumbnails")
 AWS_S3_ENDPOINT_URL = os.environ.get("AWS_S3_ENDPOINT_URL", "http://localhost:9000")
-AWS_S3_PUBLIC_ENDPOINT_URL = os.environ.get(
-    "AWS_S3_PUBLIC_ENDPOINT_URL", AWS_S3_ENDPOINT_URL
-)
+AWS_S3_PUBLIC_ENDPOINT_URL = os.environ.get("AWS_S3_PUBLIC_ENDPOINT_URL", AWS_S3_ENDPOINT_URL)
 AWS_S3_PUBLIC_SIGNATURE_VERSION = "s3v4"  # minio requires s3v4
 
 # ── OpenTelemetry ─────────────────────────────────────────────
 OTEL_SDK_DISABLED = os.environ.get("OTEL_SDK_DISABLED", "false").lower() == "true"
 OTEL_SERVICE_NAME = os.environ.get("OTEL_SERVICE_NAME", "django-thumbnail")
-OTEL_EXPORTER_OTLP_ENDPOINT = os.environ.get(
-    "OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317"
-)
+OTEL_EXPORTER_OTLP_ENDPOINT = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
 
 # ── Smoke E2E endpoints for the real world ───────────────────
 #    Test external-facing services over the network (not via in-process Django).

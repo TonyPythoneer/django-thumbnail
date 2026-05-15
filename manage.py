@@ -7,9 +7,7 @@ import sys
 
 def main():
     """Run administrative tasks."""
-    os.environ.setdefault(
-        "DJANGO_SETTINGS_MODULE", "django_thumbnail.settings.local"
-    )
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "django_thumbnail.settings.local")
 
     from django_thumbnail.telemetry import setup_otel_for_django_web
 

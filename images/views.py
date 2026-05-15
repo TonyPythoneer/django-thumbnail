@@ -25,14 +25,10 @@ def images_list(request: HttpRequest) -> JsonResponse:
     if request.method == HTTPMethod.POST:
         body = parse_json_body(request)
         if body is None:
-            return JsonResponse(
-                {"error": "invalid json"}, status=HTTPStatus.BAD_REQUEST
-            )
+            return JsonResponse({"error": "invalid json"}, status=HTTPStatus.BAD_REQUEST)
         filename = body.get("filename")
         if not filename:
-            return JsonResponse(
-                {"error": "filename required"}, status=HTTPStatus.BAD_REQUEST
-            )
+            return JsonResponse({"error": "filename required"}, status=HTTPStatus.BAD_REQUEST)
         image = Image.create_with_key(cast(User, request.user), filename)
         presign_url = public_s3.presign_put(image.original_key)
         return JsonResponse(
@@ -67,9 +63,7 @@ def tasks_create(request: HttpRequest) -> JsonResponse:
         return JsonResponse({"error": "invalid json"}, status=HTTPStatus.BAD_REQUEST)
     image_id = body.get("image_id")
     if not image_id:
-        return JsonResponse(
-            {"error": "image_id required"}, status=HTTPStatus.BAD_REQUEST
-        )
+        return JsonResponse({"error": "image_id required"}, status=HTTPStatus.BAD_REQUEST)
 
     image = Image.objects.for_user(cast(User, request.user)).filter(id=image_id).first()
     if not image:
@@ -112,9 +106,7 @@ def auth_login(request: HttpRequest) -> JsonResponse:
     password = body.get("password")
     user = authenticate(request, username=username, password=password)
     if not user:
-        return JsonResponse(
-            {"error": "invalid credentials"}, status=HTTPStatus.UNAUTHORIZED
-        )
+        return JsonResponse({"error": "invalid credentials"}, status=HTTPStatus.UNAUTHORIZED)
 
     login(request, user)
     return JsonResponse({"user": cast(User, user).username})
@@ -130,7 +122,7 @@ def auth_logout(request: HttpRequest) -> JsonResponse:
 # ---------- HTML Views ----------
 
 
-def _gallery_row(img: Image, task: "ImageTask | None") -> dict:
+def _gallery_row(img: Image, task: ImageTask | None) -> dict:
     return {
         "id": str(img.id),
         "original_filename": img.original_filename,
