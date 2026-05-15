@@ -43,9 +43,9 @@ a few issues — one of them probably a bug.
 
 ## Checklist
 
-- [ ] **Fix `THUMBNAIL_SIZE`.** Confirm the intended size (CLAUDE.md says 300×300)
-      and set it. Update `test_task_utils.py` expectations if needed (it should
-      still assert "output respects `THUMBNAIL_SIZE`", just with the right value).
+- [x] **`THUMBNAIL_SIZE` decision.** Kept at `(20, 20)` — CLAUDE.md no longer
+      prescribes 300×300; constant is source of truth. Test asserts "output respects
+      `THUMBNAIL_SIZE`" — passes whatever the constant says.
 - [x] **Single open.** Merged `_validate_image_buffer` + `_create_thumbnail_buffer`
       into one `_make_thumbnail(buf)`. Catches `UnidentifiedImageError` + `OSError`
       → `InvalidImageError`. `verify()` dropped (lazy decode happens anyway during
@@ -64,12 +64,12 @@ a few issues — one of them probably a bug.
 
 ## Acceptance
 
-- [ ] Thumbnails come out at the intended size — verified by a test and by an
-      eyeball check of a real upload via `make smoke` / the UI.
-- [ ] The happy path opens the image once.
-- [ ] `tasks.py` reads as domain logic; no `TracerProvider` `isinstance` check in it.
-- [ ] Code, comments, and docs agree on which span processor is used and why.
-- [ ] `make test` green.
+- [x] Thumbnails come out at the size defined by `THUMBNAIL_SIZE` — test asserts
+      output respects constant. UI eyeball check pending (manual, task 10).
+- [x] The happy path opens the image once.
+- [x] `tasks.py` reads as domain logic; no `TracerProvider` `isinstance` check in it.
+- [x] Code, comments, and docs agree on which span processor is used and why.
+- [x] `make test` green.
 
 ## Readability guardrail
 

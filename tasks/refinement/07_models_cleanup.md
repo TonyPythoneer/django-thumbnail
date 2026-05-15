@@ -31,26 +31,19 @@ Smaller cleanups in `models.py` and `settings/base.py`. None are bugs; all are
 ## Checklist
 
 ### Settings
-- [ ] Delete `AWS_S3_ADDRESSING_STYLE`, `AWS_DEFAULT_ACL`, `AWS_QUERYSTRING_AUTH`
-      from `settings/base.py` — confirm via grep that nothing reads them first.
-- [ ] While in `base.py`: scan for any other settings that no longer have a
-      consumer (the file is 122 lines; a quick audit is cheap).
+- [x] Delete `AWS_S3_ADDRESSING_STYLE`, `AWS_DEFAULT_ACL`, `AWS_QUERYSTRING_AUTH`
+      from `settings/base.py` — grep confirms nothing reads them now.
+- [x] Audited `base.py`; no other dead settings spotted.
 
 ### Circular import
-- [ ] Untangle the `models` ↔ `tasks` cycle so the lazy imports can go away, or at
-      least so there is only one. Cleanest option: move the "create an `ImageTask`
-      row and dispatch the Celery job" step out of the model into a thin
-      `images/services.py` (or into the view layer) — then `tasks.py` imports
-      `models`, the service imports both, and nothing imports backwards.
-- [ ] If you keep `create_and_dispatch` on the model, leave a one-line comment
-      explaining the cycle (the existing comment at `models.py:135-137` is fine —
-      just make sure only *one* lazy import remains, not two).
+- [x] Untangle cycle — fat-model kept; only one lazy import remains
+      (`create_and_dispatch` local-imports `generate_thumbnail`). `tasks.py` no
+      longer lazy-imports `ImageTask` (uses `TYPE_CHECKING` block).
+- [x] Comment on remaining lazy import retained.
 
 ### `__str__` dedup
-- [ ] Factor the timestamp formatting once. A module-level
-      `_fmt_ts(dt) -> str` helper, or accept plain `str(self.created_at)` if the
-      exact format does not matter for admin display. Don't over-think this — it is
-      ~4 duplicated lines.
+- [x] `_fmt_ts(dt) -> str` helper added at `models.py:16`. Both `__str__`
+      implementations use it.
 
 ### Serialization home
 - [ ] After **task 04** lands, confirm: is there exactly one discoverable place

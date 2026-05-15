@@ -24,41 +24,36 @@ Also minor: `login_required_json` (in `utils.py`, moving in task 03) does not us
 ## Checklist
 
 ### Kill the JSON-parse boilerplate
-- [ ] Add one small helper — `parse_json_body(request) -> dict | None` (returns
+- [x] Add one small helper — `parse_json_body(request) -> dict | None` (returns
       `None` on malformed JSON), or a `@json_body` decorator that attaches the
       parsed dict and short-circuits with a 400. Put it next to `login_required_json`
       (see task 03's decorator-location decision).
-- [ ] Replace the three inline blocks in `images_list`, `tasks_create`,
+- [x] Replace the three inline blocks in `images_list`, `tasks_create`,
       `auth_login` with the helper.
-- [ ] Keep the per-field validation (`filename required`, `image_id required`)
+- [x] Keep the per-field validation (`filename required`, `image_id required`)
       *in the view* — that is real business logic, not boilerplate. Only the
       parse-or-400 step is shared.
 
 ### Unify image serialization
-- [ ] Decide the relationship between `Image.to_dict()` and the `gallery` row dict:
-      - If they should be the same shape → have `gallery` use `to_dict()` (and
-        adjust the template to the unified field names).
-      - If the gallery genuinely needs a different shape (it renders HTML, the API
-        returns JSON) → make that explicit: a second named method
-        (`Image.to_row()` / `to_gallery_row()`) instead of an anonymous inline
-        dict, so both serializers are discoverable in one place.
-- [ ] Whichever path: the `gallery` view should not contain a 15-line
-      `rows.append({...})` literal. Move the shape into `models.py` (or a thin
-      serializer) so the view is just "fetch → serialize → render".
-- [ ] This task and **task 05** both touch the gallery query — coordinate so the
+- [x] Decide the relationship between `Image.to_dict()` and the `gallery` row dict:
+      adopted second-named-helper path — `_gallery_row(img, latest_task)` near views,
+      `to_dict()` remains for JSON API. Two named serializers, no anonymous inline dict.
+- [x] Whichever path: the `gallery` view should not contain a 15-line
+      `rows.append({...})` literal. — `gallery` is now one list-comp over `_gallery_row`.
+- [x] This task and **task 05** both touch the gallery query — coordinate so the
       N+1 fix and the serializer change land cleanly together.
 
 ### Decorator hygiene
-- [ ] Add `functools.wraps` to `login_required_json` (and to any new decorator
+- [x] Add `functools.wraps` to `login_required_json` (and to any new decorator
       from this task / task 03).
 
 ## Acceptance
 
-- [ ] `views.py` is meaningfully shorter and every view body reads as
+- [x] `views.py` is meaningfully shorter and every view body reads as
       "parse → validate → act → respond" with no plumbing noise.
-- [ ] There is exactly one place that knows how to turn an `Image` into a dict per
+- [x] There is exactly one place that knows how to turn an `Image` into a dict per
       output format — no anonymous duplicate.
-- [ ] `make test` green — existing `test_api.py` covers the JSON-error paths
+- [x] `make test` green — existing `test_api.py` covers the JSON-error paths
       (`test_create_missing_filename`, etc.); they must still pass unchanged.
 
 ## Readability guardrail

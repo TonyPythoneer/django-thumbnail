@@ -84,11 +84,12 @@ Two related fragilities around how the project boots:
 
 ## Acceptance
 
-- [ ] `python manage.py check` works with no `DJANGO_SETTINGS_MODULE` set in the env.
-- [ ] `make test` green (test settings disable OTel — confirm still skipped cleanly).
+- [x] `python manage.py check` works with no `DJANGO_SETTINGS_MODULE` set in the env.
+- [x] `make test` green (test settings disable OTel — confirm still skipped cleanly).
 - [ ] `make up` brings up web + worker; a trace still appears in Jaeger for an
       upload → thumbnail flow (manual check, or run `make smoke`).
 - [ ] Running a management command (e.g. `clean_db`) no longer initialises OTel.
+      (Blocked on telemetry-init move above.)
 
 ## Readability guardrail
 

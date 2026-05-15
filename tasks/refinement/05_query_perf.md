@@ -25,50 +25,34 @@ latest task for this image".
 ## Checklist
 
 ### Make `latest_task()` prefetch-aware
-- [ ] Change `Image.latest_task()` so that when `tasks` has been prefetched it
-      reads from the cache instead of re-querying. Because `ImageTask.Meta.ordering`
-      is `["-created_at"]`, the prefetched list is already sorted — the latest is
-      simply the first element. A clean form:
-      `next(iter(self.tasks.all()), None)` — `.all()` hits the prefetch cache;
-      `.order_by(...)` would not.
-- [ ] Verify: without a prefetch, `latest_task()` must still return the correct
-      latest row (the `Meta.ordering` makes `self.tasks.all()` ordered even on a
-      cold fetch — confirm with a test, see task 08).
+- [x] Change `Image.latest_task()` so that when `tasks` has been prefetched it
+      reads from the cache instead of re-querying. Implemented as
+      `next(iter(self.tasks.all()), None)` in `models.py:55`.
+- [x] Verify: without a prefetch, `latest_task()` must still return the correct
+      latest row — covered by `test_models.py` `latest_task` tests.
 
 ### Fix the gallery query
-- [ ] `gallery` (`views.py:158-178`): keep `prefetch_related("tasks")`, and ensure
-      `latest_task()` now consumes it. After the fix, the gallery should be **2
-      queries total** (images + their tasks), not 1 + N.
-- [ ] Coordinate with **task 04**: the gallery row-dict construction is being moved
-      into `models.py` there. The N+1 fix and the serializer move should land
-      together so the gallery view ends up as a clean "fetch → serialize → render".
+- [x] `gallery` (`views.py:163`): `prefetch_related("tasks")` kept; `latest_task()`
+      consumes cache. `test_views_html.py` asserts constant query count.
+- [x] Coordinate with **task 04**: `_gallery_row` serializer landed alongside the
+      N+1 fix. View is "fetch → serialize → render".
 
 ### Fix the JSON list API
-- [ ] `images_list` GET (`views.py:42-43`): add `.prefetch_related("tasks")` to the
-      queryset so `to_dict()` → `current_status()` → `latest_task()` reads from
-      cache. After the fix this endpoint should be a small constant number of
-      queries regardless of image count.
-- [ ] **Consider** (optional, only if it reads cleanly): instead of prefetching
-      whole task rows just to read one status, annotate the latest status onto the
-      `Image` queryset with a `Subquery` / `OuterRef`. This is fewer rows fetched
-      but more ORM machinery — only do it if the `Subquery` is genuinely readable.
-      The prefetch fix above is the safe, obvious win; the annotation is a
-      nice-to-have.
+- [x] `images_list` GET (`views.py:39`): `.prefetch_related("tasks")` added.
+- [x] **Consider** (optional) Subquery annotation — **skipped**, prefetch path
+      is cleaner; annotation deferred as future work.
 
 ### Sanity-check other call sites
-- [ ] `ImageTask.to_dict()` (`models.py:145-157`) touches `self.image.original_key`
-      etc. `tasks_detail` already uses `select_related("image")` (`views.py:86`) —
-      confirm that covers it. `tasks_create` builds a task then calls `to_dict()` —
-      check it doesn't trigger an extra `image` fetch.
+- [x] `ImageTask.to_dict()` call sites covered: `tasks_detail` uses
+      `select_related("image")`; `tasks_create` already holds the image instance
+      from the request flow — no extra fetch.
 
 ## Acceptance
 
-- [ ] Add/extend tests in **task 08** that assert query counts with
-      `django_assert_num_queries` (pytest-django) for `gallery` and
-      `images_list` GET — they should be flat (constant) as image count grows.
-- [ ] Manual check: load `/` with ~20 images, confirm via Django Debug Toolbar or
-      query logging that it is ~2 queries, not ~20.
-- [ ] `make test` green.
+- [x] Add/extend tests in **task 08** that assert query counts with
+      `django_assert_num_queries` — landed in `test_views_html.py` + `test_models.py`.
+- [ ] Manual check: load `/` with ~20 images via Django Debug Toolbar (user-driven).
+- [x] `make test` green.
 
 ## Readability guardrail
 
