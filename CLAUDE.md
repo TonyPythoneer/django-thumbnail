@@ -59,7 +59,8 @@ django-thumbnail/
     ├── forms.py
     ├── views.py · urls.py
     ├── tasks.py                 ← Celery task: generate_thumbnail
-    ├── utils.py                 ← S3 helpers (MinIO)
+    ├── storage.py               ← S3 helpers (MinIO)
+    ├── decorators.py            ← login_required_json
     ├── management/commands/     ← create_bucket, create_test_users, clean_db, clean_bucket, ...
     └── tests/
 ```

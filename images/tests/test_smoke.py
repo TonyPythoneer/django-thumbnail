@@ -20,7 +20,7 @@ from django.urls import reverse
 from PIL import Image as PILImage
 
 from images.models import ImageStatus
-from images.utils import internal_s3
+from images.storage import internal_s3
 
 BASE_URL = settings.SMOKE_DJANGO_WEB_URL
 JAEGER_BASE = settings.SMOKE_JAEGER_BASE_URL

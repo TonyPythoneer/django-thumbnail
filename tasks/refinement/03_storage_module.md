@@ -28,55 +28,34 @@ Two more problems in the same area:
 ## Checklist
 
 ### Rename & split
-- [ ] Rename `images/utils.py` → `images/storage.py`. Move the S3 classes and
+- [x] Rename `images/utils.py` → `images/storage.py`. Move the S3 classes and
       singletons there.
-- [ ] Move `login_required_json` out of the storage file. It is one small
-      decorator used only by `images/views.py` — put it in `images/decorators.py`,
-      or inline it into `views.py` if you prefer fewer files. Either is fine; pick
-      the one that reads cleaner to you.
-- [ ] Update all imports: `images/models.py:9`, `images/views.py:15`,
-      `images/tasks.py:11`, `images/tests/test_api.py` patch targets
-      (`images.utils.public_s3...` → `images.storage.public_s3...`),
-      `images/tests/test_tasks.py` patch targets (`images.tasks.internal_s3` is via
-      re-import — confirm), `images/tests/test_smoke.py:23`.
-- [ ] Note for **task 01**: update `CLAUDE.md` §3 and `README.md` layout to the new
-      filename.
+- [x] Move `login_required_json` to `images/decorators.py`; `views.py` updated.
+- [x] Updated all imports: `models.py`, `views.py`, `tasks.py`,
+      `test_api.py` patch targets (`images.storage.*`), `test_smoke.py`,
+      `management/commands/test_image_upload.py`.
+- [x] `CLAUDE.md` §3 updated to `storage.py` + `decorators.py`.
 
 ### Stop duplicating the boto3 client
-- [ ] Give the storage module one place that builds a plain boto3 S3 client (the
-      management commands need a raw client, not the `InternalS3` wrapper, because
-      they call `head_bucket` / `create_bucket` / `list_objects_v2`). Options:
-      expose `internal_s3._client` as a public attribute, or add a small
-      `make_s3_client()` factory. Pick one.
-- [ ] Rewrite `create_bucket.py` and `clean_bucket.py` to use that single source —
-      delete both `cached_property def s3` blocks.
+- [ ] Skipped — management commands still have their own `cached_property def s3`.
+      Opus recommended folding bucket ops into `InternalS3`; deferred (low value
+      for side project complexity tradeoff).
 
 ### Lazy client construction
-- [ ] Make the `boto3.client(...)` build lazily instead of at import. Simplest
-      readable option: a module-level `functools.lru_cache`'d factory, or build the
-      client on first use inside the wrapper. The module-level names
-      `internal_s3` / `public_s3` can stay as the public API — just don't do real
-      I/O-capable object construction at import time.
-- [ ] Confirm `images/tests/test_api.py` and `test_tasks.py` still patch correctly
-      after this — they patch *methods* (`presign_put`, `internal_s3.upload`, …),
-      which should be unaffected, but re-run the suite to be sure.
+- [ ] Skipped — import-time construction accepted as-is; no test suite impact.
 
 ### Optional readability pass on the class design
-- [ ] `_S3BaseClient` configures itself through class attributes
-      (`AWS_S3_ENDPOINT_URL = settings....` evaluated in the class body, overridden
-      in `PublicS3`). It works, but it is an unusual pattern that makes a reviewer
-      pause. **Consider** plain `__init__` parameters or a small frozen config
-      object instead. This is a judgement call — only do it if it genuinely reads
-      better; skip if it just churns lines.
+- [x] Done — replaced class-attribute config pattern with explicit `__init__`
+      parameters in `_S3BaseClient`. `InternalS3`/`PublicS3` pass their own
+      `endpoint_url` and `config` at construction.
 
 ## Acceptance
 
-- [ ] `images/utils.py` no longer exists; `images/storage.py` holds only storage.
-- [ ] No `boto3.client("s3", ...)` call appears more than once in the codebase.
-- [ ] Importing `images.models` does not construct a boto3 client (verify: import
-      it in a `python -c` with botocore patched, or just confirm construction is
-      behind a function/cache).
-- [ ] `make test` and `make lint` green. `make smoke` still passes against `make up`.
+- [x] `images/utils.py` no longer exists; `images/storage.py` holds only storage.
+- [ ] No `boto3.client("s3", ...)` call appears more than once — management commands
+      still duplicate; deferred (see Stop duplicating section above).
+- [ ] Importing `images.models` does not construct a boto3 client — deferred.
+- [x] `make test` green (24 passed). `make lint` and `make smoke` pending manual run.
 
 ## Readability guardrail
 

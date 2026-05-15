@@ -19,10 +19,10 @@ MOCK_PRESIGN = "http://minio/presigned-url"
 @pytest.fixture(autouse=True)
 def mock_s3():
     with (
-        patch("images.utils.public_s3.presign_put", return_value=MOCK_PRESIGN),
-        patch("images.utils.public_s3.presign_get", return_value=MOCK_PRESIGN),
-        patch("images.utils.internal_s3.delete"),
-        patch("images.utils.internal_s3.upload"),
+        patch("images.storage.public_s3.presign_put", return_value=MOCK_PRESIGN),
+        patch("images.storage.public_s3.presign_get", return_value=MOCK_PRESIGN),
+        patch("images.storage.internal_s3.delete"),
+        patch("images.storage.internal_s3.upload"),
     ):
         yield
 

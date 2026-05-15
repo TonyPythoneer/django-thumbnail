@@ -7,7 +7,7 @@ from django.conf import settings
 from opentelemetry import trace
 from PIL import Image as PillowImage
 
-from .utils import internal_s3
+from .storage import internal_s3
 
 if TYPE_CHECKING:
     from .models import Image

@@ -13,7 +13,7 @@ from django.views.decorators.http import require_http_methods
 from .forms import LoginForm, UploadForm
 from .models import Image, ImageStatus, ImageTask
 from .decorators import login_required_json
-from .utils import public_s3
+from .storage import public_s3
 
 # ---------- Images ----------
 

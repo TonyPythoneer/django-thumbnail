@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import models
 
-from .utils import internal_s3, public_s3
+from .storage import internal_s3, public_s3
 
 
 class ImageStatus(models.TextChoices):

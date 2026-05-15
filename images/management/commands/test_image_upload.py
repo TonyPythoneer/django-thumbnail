@@ -10,7 +10,7 @@ from PIL import Image as PILImage
 
 from images.models import Image, ImageTask
 from images.tasks import generate_thumbnail
-from images.utils import public_s3
+from images.storage import public_s3
 
 
 class Command(BaseCommand):
