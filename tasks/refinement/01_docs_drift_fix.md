@@ -33,21 +33,20 @@ Three documents are stale:
 - [x] Fixed dangling links: `.github/workflows/` and `tasks/refinement/`.
 
 ### docs/OBSERVABILITY.md
-- [ ] Symptom 1 & 3 (`OBSERVABILITY.md:33-42`, `87-97`) say instrumentors are wired
+- [x] Symptom 1 & 3 (`OBSERVABILITY.md:33-42`, `87-97`) say instrumentors are wired
       in `images/apps.py:ready()`. They are **not** — `apps.py` is empty; telemetry
-      is initialised in `manage.py` via `setup_otel_for_django_web()`. Either rewrite
-      the doc to match reality, or (better) fix the code in **task 02** first, then
-      make the doc true.
+      is initialised in `manage.py` via `setup_otel_for_django_web()`. Rewrote doc
+      to match reality (manage.py path, telemetry.py functions).
 - [x] Symptom 5 — replaced the stale `Makefile` `dev:` / `worker:` snippet with the
       real `docker-compose.yml` per-process `OTEL_SERVICE_NAME` wiring.
       (Framing-agnostic edit — works whether the doc stays a post-mortem or is
       rewritten current-state.)
-- [ ] The code samples reference a `setup_telemetry(...)` function that does not
+- [x] The code samples reference a `setup_telemetry(...)` function that does not
       exist (`telemetry.py` exposes `setup_otel_for_django_web` /
-      `setup_otel_for_celery_worker`). Align the samples.
-- [ ] README claims "`SimpleSpanProcessor` in dev, `BatchSpanProcessor` in prod"
-      — `telemetry.py` only ever uses `SimpleSpanProcessor`. Decide in **task 06**
-      whether to add the switch or drop the claim; reflect the decision here.
+      `setup_otel_for_celery_worker`). Aligned Symptom 3 sample to actual call path.
+- [x] README claims "`SimpleSpanProcessor` in dev, `BatchSpanProcessor` in prod"
+      — `telemetry.py` only ever uses `SimpleSpanProcessor`. Task 06 kept Simple only;
+      updated Symptom 4 to reflect this (noted as future production consideration).
 
 - [x] §0 Current State — branch `refactor/simply`, phase → Refinement, task-file
       pointer → `tasks/refinement/00_overview.md`.
@@ -59,9 +58,15 @@ Three documents are stale:
 ## Acceptance
 
 - [ ] Clone-and-follow test: every command in the README Quick Start runs without
-      error against a fresh checkout.
-- [ ] Every file path and link in all three docs resolves to a real file.
-- [ ] `docs/OBSERVABILITY.md` describes the code as it actually is.
+      error against a fresh checkout. (user-driven — needs docker stack)
+      - [x] Static verification: every `make` target in Quick Start exists in
+            `Makefile` (`up`, `smoke`, `up-infra`, `down`, `logs-app`, `logs-infra`);
+            port mappings `:8000` / `:16686` present in `docker-compose.yml`; test
+            accounts seeded by `init` container.
+      - [ ] Runtime verification: deferred to **task 10** §"Follow the README Quick
+            Start literally on a fresh clone".
+- [x] Every file path and link in all three docs resolves to a real file.
+- [x] `docs/OBSERVABILITY.md` describes the code as it actually is.
 
 ## Readability guardrail
 
