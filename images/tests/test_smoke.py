@@ -19,7 +19,7 @@ from django.conf import settings
 from django.urls import reverse
 from PIL import Image as PILImage
 
-from images.models import ImageStatus
+from images.models import Image, ImageStatus
 from images.storage import internal_s3
 
 BASE_URL = settings.SMOKE_DJANGO_WEB_URL
@@ -133,12 +133,9 @@ class TestImageThumbnailFlow:
         raise AssertionError(f"timed out waiting for task (last status={status})")
 
     def _assert_thumbnail_exists(self, upload_url: str) -> None:
-        # original key: users/<id>/<uuid>/<stem>.<ext>
-        # thumbnail key: users/<id>/<uuid>/<stem>_thumbnail.<ext>
         object_key = urllib.parse.urlparse(upload_url).path.lstrip("/")
         bucket, _, original_key = object_key.partition("/")
-        stem, dot, ext = original_key.rpartition(".")
-        thumbnail_key = f"{stem}_thumbnail{dot}{ext}"
+        thumbnail_key = Image.format_thumbnail_key_from_original(original_key)
         internal_s3._client.head_object(Bucket=bucket, Key=original_key)
         internal_s3._client.head_object(Bucket=bucket, Key=thumbnail_key)
 
