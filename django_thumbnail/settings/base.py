@@ -12,6 +12,7 @@ ALLOWED_HOSTS: list[str] = []
 
 # ── Application ──────────────────────────────────────────────
 INSTALLED_APPS = [
+    "django_thumbnail.apps.CoreConfig",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",

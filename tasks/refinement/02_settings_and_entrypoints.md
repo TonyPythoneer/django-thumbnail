@@ -1,7 +1,7 @@
 # 02 — Settings module & process entrypoints
 
 **Lens:** CTO / Solution Architect **Risk:** Low **Est. LOC delta:** ~0 to +5
-**Status:** Settings-module default — DONE. Makefile `DJANGO_SETTINGS_TEST` removed — DONE. Telemetry init move — **BLOCKED**, see the note in that subsection.
+**Status:** Settings-module default — DONE. Makefile `DJANGO_SETTINGS_TEST` removed — DONE. Telemetry init move — DONE (gated on web-server detection to dodge fork inheritance in the Celery worker parent; see implementation note below).
 
 ## Context
 
@@ -41,46 +41,32 @@ Two related fragilities around how the project boots:
 
 ### Telemetry init location
 
-> **BLOCKED — needs a decision before implementing.**
-> Moving `setup_otel_for_django_web()` into `apps.py:ready()` is *not* a safe
-> straight move. `ready()` fires during `django.setup()` in **every** process —
-> including the Celery **worker parent** and management commands.
->
-> Concrete risk to the worker: today the worker parent runs no telemetry, so each
-> prefork child's `worker_process_init` → `setup_otel_for_celery_worker()` builds a
-> **fresh** `TracerProvider` + OTLP exporter in the child. If `ready()` inits
-> telemetry in the parent first, `_setup_provider()` (idempotent) and the
-> `BaseInstrumentor` singletons turn the child's re-init into a **no-op** — the
-> child then inherits the parent's provider and gRPC exporter **across `fork()`**,
-> a known footgun that can silently break worker→Jaeger export. That export is the
-> project's headline feature.
->
-> Also entangled with **task 06**: `telemetry.py` uses `SimpleSpanProcessor` (no
-> background thread), so the "BSP thread not inherited after fork" rationale behind
-> the per-child signal may not even apply — the processor choice changes the
-> correct answer here.
->
-> **Recommendation:** resolve task 06's span-processor decision first, then design
-> `ready()` so it does **not** run the web/`django=True` path inside the worker
-> (detect the worker, or keep worker init exclusively in the signal). No blind move.
+> **Resolved.** Task 06 kept `SimpleSpanProcessor` only — no background BSP thread
+> to lose across fork. The remaining concrete risk (gRPC channel inheritance from
+> parent to forked child) is sidestepped by *not* initialising telemetry in the
+> worker parent at all: `CoreConfig.ready()` (`django_thumbnail/apps.py`) only
+> fires `setup_otel_for_django_web()` when `_is_web_server_process()` matches
+> (`runserver` / `gunicorn` / `uvicorn`). The worker keeps its per-child
+> `worker_process_init` handler. `CoreConfig` is a project-level `AppConfig` —
+> domain apps (`images`, etc.) carry no instrumentation responsibility.
 
-- [ ] Move telemetry wiring into `images/apps.py` `ImagesConfig.ready()` — call
-      `setup_otel_for_django_web()` there. This is what the `telemetry.py:47`
-      docstring already promises and what `docs/OBSERVABILITY.md` claims.
-- [ ] Remove the `setup_otel_for_django_web()` call from `manage.py:12-14`. Keep
+- [x] Move telemetry wiring into `django_thumbnail/apps.py` `CoreConfig.ready()` —
+      call `setup_otel_for_django_web()` there, gated by `_is_web_server_process()`.
+      Added `"django_thumbnail.apps.CoreConfig"` to `INSTALLED_APPS` (first entry so
+      OTel init precedes other apps' `ready()`).
+- [x] Remove the `setup_otel_for_django_web()` call from `manage.py:12-14`. Keep
       `manage.py` as the stock Django utility.
-- [ ] Verify the Celery worker path still works: `django_thumbnail/celery.py:12-15`
-      wires `setup_otel_for_celery_worker()` via `worker_process_init` — that is
-      correct, leave it. But note `ready()` *also* runs in the worker process when
-      Django is set up; confirm `_instrument(django=False)` vs `django=True` don't
-      double-instrument. `telemetry.py:_setup_provider` is already idempotent;
-      verify `CeleryInstrumentor().instrument()` / `BotocoreInstrumentor()` are too,
-      or guard them.
-- [ ] Decide whether `wsgi.py` / `asgi.py` need anything: with init in
-      `apps.py:ready()`, Django calls it for any entrypoint (runserver, gunicorn,
-      uvicorn). That should be sufficient — confirm and document.
-- [ ] Once done, this is the code that makes `docs/OBSERVABILITY.md` Symptom 1 & 3
-      *true* — hand the corrected behaviour back to **task 01**.
+- [x] Verify the Celery worker path still works: `django_thumbnail/celery.py:12-15`
+      wires `setup_otel_for_celery_worker()` via `worker_process_init` — left as-is.
+      `ready()` runs in the worker parent too, but `_is_web_server_process()` returns
+      False there (argv0 is `celery`, no `runserver`), so no parent-side init —
+      worker child stays the sole initialiser.
+- [x] Decide whether `wsgi.py` / `asgi.py` need anything: no — `gunicorn` /
+      `uvicorn` trigger `django.setup()` → `ready()` → `_is_web_server_process()`
+      returns True via `argv0` match. Both files left as stock Django.
+- [x] Once done, this is the code that makes `docs/OBSERVABILITY.md` Symptom 1 & 3
+      *true* — Symptom 1/3 fix sections rewritten to describe `CoreConfig.ready()`
+      (`django_thumbnail/apps.py`) + web-server gate.
 
 ## Acceptance
 
@@ -88,8 +74,11 @@ Two related fragilities around how the project boots:
 - [x] `make test` green (test settings disable OTel — confirm still skipped cleanly).
 - [ ] `make up` brings up web + worker; a trace still appears in Jaeger for an
       upload → thumbnail flow (manual check, or run `make smoke`).
-- [ ] Running a management command (e.g. `clean_db`) no longer initialises OTel.
-      (Blocked on telemetry-init move above.)
+      *(user-driven — needs docker stack; deferred to task 10.)*
+- [x] Running a management command (e.g. `clean_db`) no longer initialises OTel.
+      Probed via `django.setup()` with `sys.argv = ['manage.py', 'check']` →
+      `trace.get_tracer_provider()` is `ProxyTracerProvider` (no-op). The
+      `runserver` argv path yields `TracerProvider` as expected.
 
 ## Readability guardrail
 

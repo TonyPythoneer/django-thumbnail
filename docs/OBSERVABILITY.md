@@ -30,13 +30,23 @@ Goal: a single `trace_id` shared across every span above, with correct parent/ch
 **Why.**
 `opentelemetry-instrumentation-celery` injects a `traceparent` header into the Celery message *only* if the instrumentor has been activated in the **publisher** process. The Django process had `DjangoInstrumentor` wired, but `CeleryInstrumentor` was not. Without it, `apply_async` published a message with no W3C trace context, so the worker (which *did* have `CeleryInstrumentor` active via the `opentelemetry-instrument` wrapper) extracted nothing and started a fresh root span.
 
-**Fix.** Wire `CeleryInstrumentor` programmatically alongside `DjangoInstrumentor` in `django_thumbnail/telemetry.py`, called from `manage.py` via `setup_otel_for_django_web()`. The Django process now patches Celery's `Producer.publish` to inject `traceparent`, and the worker's `CeleryInstrumentor` extracts it on consume — same `trace_id`, correct parent.
+**Fix.** Wire `CeleryInstrumentor` programmatically alongside `DjangoInstrumentor` in `django_thumbnail/telemetry.py`, called from `CoreConfig.ready()` (`django_thumbnail/apps.py`) via `setup_otel_for_django_web()`. The Django web process now patches Celery's `Producer.publish` to inject `traceparent`, and the worker's `CeleryInstrumentor` extracts it on consume — same `trace_id`, correct parent.
+
+`ready()` runs in *every* process that calls `django.setup()` — including the Celery worker parent and management commands. To avoid inheriting a live gRPC exporter across `fork()` in the worker (and to keep `migrate`/`shell` quiet), `ready()` gates the call on a `_is_web_server_process()` check that only fires for `runserver` / `gunicorn` / `uvicorn`. The worker keeps its per-child `worker_process_init` signal handler.
+
+`CoreConfig` is a project-level `AppConfig` whose only job is cross-cutting init (OTel, future Sentry/metrics). Domain apps (`images/apps.py`, future `users/apps.py`, etc.) stay stock — no instrumentation responsibility leaks into them.
 
 ```python
-# django_thumbnail/telemetry.py  (_instrument, called via setup_otel_for_django_web)
-CeleryInstrumentor().instrument()
-BotocoreInstrumentor().instrument()
-DjangoInstrumentor().instrument()
+# django_thumbnail/apps.py
+class CoreConfig(AppConfig):
+    name = "django_thumbnail"
+    label = "core"
+
+    def ready(self) -> None:
+        if not _is_web_server_process():
+            return
+        from django_thumbnail.telemetry import setup_otel_for_django_web
+        setup_otel_for_django_web()
 ```
 
 ---
@@ -82,7 +92,7 @@ This eliminates the thread hop and the S3 span becomes a child of whichever span
 
 **Why.** `opentelemetry-instrument` activates auto-instrumentors via a sitecustomize hook before `manage.py main()` runs. That hook touches `django.conf.settings` early. Under our configuration, the access path caused `LazySettings._wrapped` to be populated with `global_settings` defaults — `DEBUG=False`, `ALLOWED_HOSTS=[]` — before `DJANGO_SETTINGS_MODULE` was honoured. By the time `manage.py` ran `os.environ.setdefault("DJANGO_SETTINGS_MODULE", ...)`, `_wrapped` was already set and the setdefault did nothing.
 
-**Fix.** Drop the `opentelemetry-instrument` CLI wrapper for `make dev`. Initialize OpenTelemetry **programmatically** in `manage.py` before Django boots, via `setup_otel_for_django_web()` from `django_thumbnail/telemetry.py`. This fires after `DJANGO_SETTINGS_MODULE` is resolved but before `execute_from_command_line`. Same approach for the worker — `make worker` no longer uses the wrapper either. The wrapper was redundant given we already call `setup_otel_for_django_web()` / `setup_otel_for_celery_worker()` explicitly.
+**Fix.** Drop the `opentelemetry-instrument` CLI wrapper. Initialize OpenTelemetry **programmatically** inside `ImagesConfig.ready()` (`images/apps.py`), which Django invokes after settings are loaded properly. The web container's `runserver`, plus any `gunicorn`/`uvicorn` entrypoint, satisfies the `_is_web_server_process()` gate; the Celery worker is initialised per-child via the `worker_process_init` signal in `django_thumbnail/celery.py`. The wrapper was redundant given we already call `setup_otel_for_django_web()` / `setup_otel_for_celery_worker()` explicitly.
 
 ---
 
