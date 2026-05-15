@@ -132,9 +132,4 @@ to §1 or §2 after evaluation.
 
 - Revisit this list when the python-engineering plugin upgrades (new skills go to §3 pending).
 - When adding a new local skill that overlaps an existing python-engineering skill, **record the rationale for choosing the local version** in §4.
-- When this file changes, also update SKILLS_HIRE.md §C1 accordingly.
-- If P3 (django-extensions package decision) flips to "install", the local `django-extensions` skill policy is handled separately — it is unrelated to python-engineering policy.
-
----
-
-*Companion docs: `SKILLS_HIRE.md` C1 (originating task) and `SKILLS_RESEARCH.md` (research foundation).*
+- If the django-extensions package is later installed (currently DORMANT — see `.claude/skills/django-extensions/SKILL.md`), the local `django-extensions` skill policy is handled separately — it is unrelated to python-engineering policy.
