@@ -17,6 +17,12 @@ import pytest
 import requests
 from django.conf import settings
 from django.urls import reverse
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.requests import RequestsInstrumentor
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from PIL import Image as PILImage
 
 from images.models import Image, ImageStatus
@@ -24,6 +30,8 @@ from images.storage import internal_s3
 
 BASE_URL = settings.SMOKE_DJANGO_WEB_URL
 JAEGER_BASE = settings.SMOKE_JAEGER_BASE_URL
+OTLP_ENDPOINT = settings.OTEL_EXPORTER_OTLP_ENDPOINT
+SMOKE_SERVICE_NAME = settings.SMOKE_OTEL_SERVICE_NAME
 
 POLL_MAX = 20
 POLL_INTERVAL = 2
@@ -33,6 +41,24 @@ USERNAME = "test1@example.com"
 PASSWORD = "test1"
 
 pytestmark = [pytest.mark.smoke]
+
+tracer = trace.get_tracer(__name__)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _smoke_tracing() -> object:
+    """Wire OTel in the smoke test process so requests calls emit client spans
+    into Jaeger and propagate traceparent headers to the Django web service."""
+    resource = Resource.create({"service.name": SMOKE_SERVICE_NAME})
+    provider = TracerProvider(resource=resource)
+    provider.add_span_processor(
+        BatchSpanProcessor(OTLPSpanExporter(endpoint=OTLP_ENDPOINT, insecure=True))
+    )
+    trace.set_tracer_provider(provider)
+    RequestsInstrumentor().instrument()
+    yield
+    RequestsInstrumentor().uninstrument()
+    provider.shutdown()
 
 
 def _jpeg_bytes() -> bytes:
@@ -57,17 +83,26 @@ class TestImageThumbnailFlow:
     tasks_viewname = "tasks-create"
     task_detail_viewname = "tasks-detail"
 
+    @tracer.start_as_current_span("smoke.create_image_and_thumbnail")
     def test_create_image_and_thumbnail(self) -> None:
+        span = trace.get_current_span()
+
         session = requests.Session()
         csrf_headers = self._login(session)
         image_id, upload_url = self._create_image(session, csrf_headers)
         self._upload_to_s3(upload_url)
         task_id = self._trigger_task(session, csrf_headers, image_id)
+        span.add_event("smoke.create_image_and_thumbnail.verified")
 
         # infra slices: each helper verifies a distinct layer of the stack
         self._assert_async_worker_processes_task(session, task_id)
+        span.add_event("infra.async_worker.verified")
+
         self._assert_storage_contains_thumbnail(upload_url)
+        span.add_event("infra.storage.verified")
+
         self._assert_observability_captures_trace(image_id)
+        span.add_event("infra.observability.verified")
 
     def _login(self, session: requests.Session) -> dict[str, str]:
         resp = session.post(
@@ -115,9 +150,7 @@ class TestImageThumbnailFlow:
         assert resp.status_code == HTTPStatus.CREATED, f"create task failed: {resp.text}"
         return resp.json()["task_id"]
 
-    def _assert_async_worker_processes_task(
-        self, session: requests.Session, task_id: str
-    ) -> None:
+    def _assert_async_worker_processes_task(self, session: requests.Session, task_id: str) -> None:
         status = "unknown"
         for _ in range(POLL_MAX):
             resp = session.get(

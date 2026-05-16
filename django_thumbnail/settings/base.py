@@ -110,3 +110,4 @@ OTEL_EXPORTER_OTLP_ENDPOINT = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "htt
 #    Test external-facing services over the network (not via in-process Django).
 SMOKE_DJANGO_WEB_URL = os.environ.get("SMOKE_DJANGO_WEB_URL", "http://localhost:8000")
 SMOKE_JAEGER_BASE_URL = os.environ.get("SMOKE_JAEGER_BASE_URL", "http://localhost:16686")
+SMOKE_OTEL_SERVICE_NAME = os.environ.get("SMOKE_OTEL_SERVICE_NAME", "django-thumbnail-smoke")
