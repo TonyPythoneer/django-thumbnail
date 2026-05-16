@@ -4,13 +4,17 @@ Smoke E2E tests — verify docker-compose stack via real HTTP.
 Run from host against the running stack (reaches web/minio/jaeger via
 published localhost ports). Requires `make up` first:
     make smoke
+
+Tracing precondition: smoke + compose web + worker MUST all use
+SimpleSpanProcessor → spans export synchronously on span end and are
+in Jaeger immediately. This lets assertions skip force_flush() and
+query Jaeger mid-span. Perf irrelevant in tests.
 """
 
 import io
-import json
 import time
 import urllib.parse
-import urllib.request
+from collections.abc import Iterator
 from http import HTTPStatus
 
 import pytest
@@ -22,21 +26,19 @@ from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExport
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from PIL import Image as PILImage
 
 from images.models import Image, ImageStatus
 from images.storage import internal_s3
+from images.tests.jaeger import jaeger_client
 
 BASE_URL = settings.SMOKE_DJANGO_WEB_URL
-JAEGER_BASE = settings.SMOKE_JAEGER_BASE_URL
 OTLP_ENDPOINT = settings.OTEL_EXPORTER_OTLP_ENDPOINT
 SMOKE_SERVICE_NAME = settings.SMOKE_OTEL_SERVICE_NAME
 
 POLL_MAX = 20
 POLL_INTERVAL = 2
-JAEGER_POLL_MAX = 2
-JAEGER_POLL_INTERVAL = 3
 USERNAME = "test1@example.com"
 PASSWORD = "test1"
 
@@ -46,13 +48,13 @@ tracer = trace.get_tracer(__name__)
 
 
 @pytest.fixture(scope="session", autouse=True)
-def _smoke_tracing() -> object:
+def _smoke_tracing() -> Iterator[None]:
     """Wire OTel in the smoke test process so requests calls emit client spans
     into Jaeger and propagate traceparent headers to the Django web service."""
     resource = Resource.create({"service.name": SMOKE_SERVICE_NAME})
     provider = TracerProvider(resource=resource)
     provider.add_span_processor(
-        BatchSpanProcessor(OTLPSpanExporter(endpoint=OTLP_ENDPOINT, insecure=True))
+        SimpleSpanProcessor(OTLPSpanExporter(endpoint=OTLP_ENDPOINT, insecure=True))
     )
     trace.set_tracer_provider(provider)
     RequestsInstrumentor().instrument()
@@ -67,42 +69,36 @@ def _jpeg_bytes() -> bytes:
     return buf.getvalue()
 
 
-def _query_jaeger_trace(image_id: str) -> dict:
-    tags = json.dumps({"image_id": image_id, "status": ImageStatus.DONE})
-    params = urllib.parse.urlencode(
-        {"service": "django-thumbnail-worker", "tags": tags, "limit": 1}
-    )
-    url = f"{JAEGER_BASE}/api/traces?{params}"
-    with urllib.request.urlopen(url, timeout=5) as resp:
-        return json.loads(resp.read())
-
-
 class TestImageThumbnailFlow:
     login_viewname = "auth-login"
     images_viewname = "images-list"
     tasks_viewname = "tasks-create"
     task_detail_viewname = "tasks-detail"
 
-    @tracer.start_as_current_span("smoke.create_image_and_thumbnail")
+    event_async_worker_verified = "infra.async_worker.verified"
+    event_storage_verified = "infra.storage.verified"
+    event_observability_verified = "infra.observability.verified"
+
     def test_create_image_and_thumbnail(self) -> None:
-        span = trace.get_current_span()
+        with tracer.start_as_current_span("smoke.create_image_and_thumbnail") as span:
+            trace_id = format(span.get_span_context().trace_id, "032x")
+            session = requests.Session()
+            csrf_headers = self._login(session)
+            image_id, upload_url = self._create_image(session, csrf_headers)
+            self._upload_to_s3(upload_url)
+            task_id = self._trigger_task(session, csrf_headers, image_id)
 
-        session = requests.Session()
-        csrf_headers = self._login(session)
-        image_id, upload_url = self._create_image(session, csrf_headers)
-        self._upload_to_s3(upload_url)
-        task_id = self._trigger_task(session, csrf_headers, image_id)
-        span.add_event("smoke.create_image_and_thumbnail.verified")
+            # infra slices: each helper verifies a distinct layer of the stack
+            self._assert_async_worker_processes_task(session, task_id)
+            span.add_event(self.event_async_worker_verified)
 
-        # infra slices: each helper verifies a distinct layer of the stack
-        self._assert_async_worker_processes_task(session, task_id)
-        span.add_event("infra.async_worker.verified")
+            self._assert_storage_contains_thumbnail(upload_url)
+            span.add_event(self.event_storage_verified)
 
-        self._assert_storage_contains_thumbnail(upload_url)
-        span.add_event("infra.storage.verified")
+            self._assert_services_in_trace(trace_id)
+            span.add_event(self.event_observability_verified)
 
-        self._assert_observability_captures_trace(image_id)
-        span.add_event("infra.observability.verified")
+        self._assert_events_in_trace(trace_id)
 
     def _login(self, session: requests.Session) -> dict[str, str]:
         resp = session.post(
@@ -172,19 +168,21 @@ class TestImageThumbnailFlow:
         internal_s3._client.head_object(Bucket=bucket, Key=original_key)
         internal_s3._client.head_object(Bucket=bucket, Key=thumbnail_key)
 
-    def _assert_observability_captures_trace(self, image_id: str) -> None:
-        data: dict = {}
-        for _ in range(JAEGER_POLL_MAX):
-            data = _query_jaeger_trace(image_id)
-            if data.get("data"):
-                break
-            time.sleep(JAEGER_POLL_INTERVAL)
+    def _assert_services_in_trace(self, trace_id: str) -> None:
+        data = jaeger_client.poll_trace(trace_id)
+        assert data.get("data"), f"no Jaeger trace for trace_id={trace_id}"
+        service_names = jaeger_client.services_in_trace(data)
+        assert {"django-thumbnail-app", "django-thumbnail-worker"} <= service_names, (
+            f"missing spans. services={service_names}"
+        )
 
-        assert data.get("data"), f"no Jaeger trace for image_id={image_id} after retries"
-        service_names = [p["serviceName"] for p in data["data"][0]["processes"].values()]
-        assert "django-thumbnail-app" in service_names, (
-            f"missing web span. services={service_names}"
-        )
-        assert "django-thumbnail-worker" in service_names, (
-            f"missing worker span. services={service_names}"
-        )
+    def _assert_events_in_trace(self, trace_id: str) -> None:
+        data = jaeger_client.poll_trace(trace_id)
+        assert data.get("data"), f"no Jaeger trace for trace_id={trace_id}"
+        events = jaeger_client.extract_events(data)
+        expected = {
+            self.event_async_worker_verified,
+            self.event_storage_verified,
+            self.event_observability_verified,
+        }
+        assert expected <= set(events), f"missing events. events={events}"
