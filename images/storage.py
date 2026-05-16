@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 
 class _S3BaseClient:
-    def __init__(self, endpoint_url: str, config: Config | None = None):
+    def __init__(self, endpoint_url: str, config: Config | None = None) -> None:
         self._client: S3Client = boto3.client(
             "s3",
             endpoint_url=endpoint_url,
@@ -21,7 +21,7 @@ class _S3BaseClient:
 
 
 class InternalS3(_S3BaseClient):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(endpoint_url=settings.AWS_S3_ENDPOINT_URL)
 
     def download(self, bucket: str, key: str) -> io.BytesIO:
@@ -36,7 +36,7 @@ class InternalS3(_S3BaseClient):
 
 
 class PublicS3(_S3BaseClient):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             endpoint_url=settings.AWS_S3_PUBLIC_ENDPOINT_URL,
             config=Config(signature_version=settings.AWS_S3_PUBLIC_SIGNATURE_VERSION),

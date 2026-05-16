@@ -1,12 +1,16 @@
 import json
+from collections.abc import Callable
 from functools import wraps
+from typing import Concatenate
 
-from django.http import HttpRequest, JsonResponse
+from django.http import HttpRequest, HttpResponseBase, JsonResponse
 
 
-def login_required_json(view):
+def login_required_json[**P](
+    view: Callable[Concatenate[HttpRequest, P], HttpResponseBase],
+) -> Callable[Concatenate[HttpRequest, P], HttpResponseBase]:
     @wraps(view)
-    def wrapper(request: HttpRequest, *args, **kwargs):
+    def wrapper(request: HttpRequest, *args: P.args, **kwargs: P.kwargs) -> HttpResponseBase:
         if not request.user.is_authenticated:
             return JsonResponse({"error": "auth required"}, status=401)
         return view(request, *args, **kwargs)

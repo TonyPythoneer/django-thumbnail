@@ -18,7 +18,7 @@ USERS = [
 class Command(BaseCommand):
     help = "Create permanent test accounts"
 
-    def handle(self, *args, **options):
+    def handle(self, *args: object, **options: object) -> None:
         if self.check_created_test_accounts():
             self.stdout.write("test accounts already exist, skipping")
             return

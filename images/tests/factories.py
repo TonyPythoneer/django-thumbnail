@@ -1,4 +1,5 @@
 import uuid
+from typing import cast
 
 import factory
 from django.contrib.auth.models import User
@@ -17,11 +18,11 @@ class UserFactory(factory.django.DjangoModelFactory):
     email = factory.LazyAttribute(lambda o: o.username)
 
     @factory.post_generation
-    def password(self, create, extracted, **kwargs):
-        pwd = extracted or USER_PLAIN_PASSWORD
-        self.set_password(pwd)
+    def password(self, create: bool, extracted: str | None, **kwargs: dict) -> None:
+        user = cast(User, self)
+        user.set_password(extracted or USER_PLAIN_PASSWORD)
         if create:
-            self.save(update_fields=["password"])
+            user.save(update_fields=["password"])
 
 
 class ImageFactory(factory.django.DjangoModelFactory):
@@ -44,3 +45,15 @@ class ImageTaskFactory(factory.django.DjangoModelFactory):
 
     image = factory.SubFactory(ImageFactory)
     status = ImageStatus.PENDING
+
+
+def make_user(**kwargs: object) -> User:
+    return cast(User, UserFactory(**kwargs))
+
+
+def make_image(**kwargs: object) -> Image:
+    return cast(Image, ImageFactory(**kwargs))
+
+
+def make_image_task(**kwargs: object) -> ImageTask:
+    return cast(ImageTask, ImageTaskFactory(**kwargs))

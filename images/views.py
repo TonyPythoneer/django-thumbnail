@@ -2,11 +2,10 @@ import io
 from http import HTTPMethod, HTTPStatus
 from typing import cast
 
-from celery.result import AsyncResult
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.http import HttpRequest, JsonResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
@@ -74,7 +73,7 @@ def tasks_create(request: HttpRequest) -> JsonResponse:
 
 
 @login_required_json
-@require_http_methods([HTTPMethod.GET, HTTPMethod.DELETE])
+@require_http_methods([HTTPMethod.GET])
 def tasks_detail(request: HttpRequest, task_id: str) -> JsonResponse:
     task = (
         ImageTask.objects.select_related("image")
@@ -83,12 +82,6 @@ def tasks_detail(request: HttpRequest, task_id: str) -> JsonResponse:
     )
     if not task:
         return JsonResponse({"error": "not found"}, status=HTTPStatus.NOT_FOUND)
-
-    if request.method == HTTPMethod.DELETE:
-        if task.celery_task_id:
-            AsyncResult(task.celery_task_id).revoke(terminate=True)
-        task.mark_failed("revoked")
-        return JsonResponse({"revoked": task_id})
 
     return JsonResponse(task.to_dict())
 
@@ -136,7 +129,7 @@ def _gallery_row(img: Image, task: ImageTask | None) -> dict:
     }
 
 
-def html_login(request: HttpRequest):
+def html_login(request: HttpRequest) -> HttpResponse:
     if request.user.is_authenticated:
         return redirect("gallery")
     form = LoginForm(request.POST or None)
@@ -154,20 +147,20 @@ def html_login(request: HttpRequest):
 
 
 @require_http_methods([HTTPMethod.POST])
-def html_logout(request: HttpRequest):
+def html_logout(request: HttpRequest) -> HttpResponse:
     logout(request)
     return redirect("login")
 
 
 @login_required(login_url="login")
-def gallery(request: HttpRequest):
+def gallery(request: HttpRequest) -> HttpResponse:
     images_qs = Image.objects.for_user(cast(User, request.user)).prefetch_related("tasks")
     rows = [_gallery_row(img, img.latest_task()) for img in images_qs]
     return render(request, "images/gallery.html", {"images": rows})
 
 
 @login_required(login_url="login")
-def upload(request: HttpRequest):
+def upload(request: HttpRequest) -> HttpResponse:
     form = UploadForm(request.POST or None, request.FILES or None)
     if request.method == HTTPMethod.POST and form.is_valid():
         f = form.cleaned_data["file"]
@@ -180,7 +173,7 @@ def upload(request: HttpRequest):
 
 @login_required(login_url="login")
 @require_http_methods([HTTPMethod.POST])
-def image_delete(request: HttpRequest, image_id: str):
+def image_delete(request: HttpRequest, image_id: str) -> HttpResponse:
     image = Image.objects.for_user(cast(User, request.user)).filter(id=image_id).first()
     if image:
         image.delete_from_storage()

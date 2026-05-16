@@ -15,7 +15,7 @@ OUT_DIR = Path(__file__).resolve().parents[3] / "static" / "images" / "placehold
 class Command(BaseCommand):
     help = "Generate placeholder images for upload demo"
 
-    def handle(self, *args, **options):
+    def handle(self, *args: object, **options: object) -> None:
         OUT_DIR.mkdir(parents=True, exist_ok=True)
         for filename, w, h, color in PLACEHOLDERS:
             img = Image.new("RGB", (w, h), color)
