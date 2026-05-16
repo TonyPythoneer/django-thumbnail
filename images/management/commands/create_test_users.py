@@ -1,36 +1,28 @@
-from typing import NamedTuple
-
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
 
 
-class TestUser(NamedTuple):
-    email: str
-    password: str
-
-
-USERS = [
-    TestUser("test1@example.com", "test1"),
-    TestUser("test2@example.com", "test2"),
-]
-
-
 class Command(BaseCommand):
-    help = "Create permanent test accounts"
+    help = "Create permanent test accounts defined in settings.TEST_USERS"
 
     def handle(self, *args: object, **options: object) -> None:
-        if self.check_created_test_accounts():
+        users: list[tuple[str, str]] = list(settings.TEST_USERS)
+        if not users:
+            self.stdout.write(self.style.WARNING("settings.TEST_USERS empty, skipping"))
+            return
+        if self._all_present(users):
             self.stdout.write("test accounts already exist, skipping")
             return
-        self.create_test_accounts()
+        self._create(users)
         self.stdout.write("test accounts created")
 
-    def check_created_test_accounts(self) -> bool:
-        emails = [email for email, _ in USERS]
-        return User.objects.filter(username__in=emails).count() == len(USERS)
+    def _all_present(self, users: list[tuple[str, str]]) -> bool:
+        emails = [email for email, _ in users]
+        return User.objects.filter(username__in=emails).count() == len(users)
 
-    def create_test_accounts(self) -> None:
-        for username, password in USERS:
+    def _create(self, users: list[tuple[str, str]]) -> None:
+        for username, password in users:
             if not User.objects.filter(username=username).exists():
                 User.objects.create_user(
                     username=username,
