@@ -29,8 +29,10 @@ def mock_s3() -> Iterator[None]:
 
 
 class TestGallery:
+    gallery_viewname = "gallery"
+
     def test_gallery_requires_login(self, client: Client) -> None:
-        resp = client.get(reverse("gallery"))
+        resp = client.get(reverse(self.gallery_viewname))
         assert resp.status_code == HTTPStatus.FOUND
         assert "/login/" in resp["Location"]
 
@@ -39,7 +41,7 @@ class TestGallery:
         make_image(user=user)
         make_image(user=user)
         make_image()  # other user
-        resp = client.get(reverse("gallery"))
+        resp = client.get(reverse(self.gallery_viewname))
         assert resp.status_code == HTTPStatus.OK
         assert len(resp.context["images"]) == 2
 
@@ -53,13 +55,15 @@ class TestGallery:
             img = make_image(user=user)
             make_image_task(image=img)
         with django_assert_num_queries(4):  # session auth + user + images + tasks prefetch
-            client.get(reverse("gallery"))
+            client.get(reverse(self.gallery_viewname))
 
 
 class TestUpload:
+    upload_viewname = "upload"
+
     def test_upload_get_renders_form(self, auth_client: tuple[Client, User]) -> None:
         client, _ = auth_client
-        resp = client.get(reverse("upload"))
+        resp = client.get(reverse(self.upload_viewname))
         assert resp.status_code == HTTPStatus.OK
 
     def test_upload_post_creates_image_and_dispatches_task(
@@ -76,24 +80,29 @@ class TestUpload:
             patch("images.tasks.internal_s3.download", return_value=make_image_buf()),
             patch("images.tasks.internal_s3.upload"),
         ):
-            resp = client.post(reverse("upload"), {"file": f})
+            resp = client.post(reverse(self.upload_viewname), {"file": f})
         assert resp.status_code == HTTPStatus.FOUND
         assert Image.objects.filter(user=user).exists()
 
 
 class TestHtmlLogin:
+    login_viewname = "login"
+    gallery_viewname = "gallery"
+
     def test_redirects_authenticated_user(self, auth_client: tuple[Client, User]) -> None:
         client, _ = auth_client
-        resp = client.get(reverse("login"))
+        resp = client.get(reverse(self.login_viewname))
         assert resp.status_code == HTTPStatus.FOUND
-        assert resp["Location"].endswith(reverse("gallery"))
+        assert resp["Location"].endswith(reverse(self.gallery_viewname))
 
 
 class TestImageDelete:
+    delete_viewname = "image-delete"
+
     def test_delete_own_image(self, auth_client: tuple[Client, User]) -> None:
         client, user = auth_client
         image = make_image(user=user)
-        resp = client.post(reverse("image-delete", kwargs={"image_id": image.id}))
+        resp = client.post(reverse(self.delete_viewname, kwargs={"image_id": image.id}))
         assert resp.status_code == HTTPStatus.FOUND
         assert not Image.objects.filter(id=image.id).exists()
 
@@ -102,6 +111,6 @@ class TestImageDelete:
     ) -> None:
         client, _ = auth_client
         image = make_image(user=other_user)
-        resp = client.post(reverse("image-delete", kwargs={"image_id": image.id}))
+        resp = client.post(reverse(self.delete_viewname, kwargs={"image_id": image.id}))
         assert resp.status_code == HTTPStatus.FOUND  # redirects to gallery
         assert Image.objects.filter(id=image.id).exists()  # not deleted

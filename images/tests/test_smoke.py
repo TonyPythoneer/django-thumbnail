@@ -27,6 +27,8 @@ JAEGER_BASE = settings.SMOKE_JAEGER_BASE_URL
 
 POLL_MAX = 20
 POLL_INTERVAL = 2
+JAEGER_POLL_MAX = 2
+JAEGER_POLL_INTERVAL = 3
 USERNAME = "test1@example.com"
 PASSWORD = "test1"
 
@@ -62,10 +64,10 @@ class TestImageThumbnailFlow:
         self._upload_to_s3(upload_url)
         task_id = self._trigger_task(session, csrf_headers, image_id)
 
-        # infra check
-        self._poll_until_done(session, task_id)
-        self._assert_thumbnail_exists(upload_url)
-        self._assert_jaeger_trace(image_id)
+        # infra slices: each helper verifies a distinct layer of the stack
+        self._assert_async_worker_processes_task(session, task_id)
+        self._assert_storage_contains_thumbnail(upload_url)
+        self._assert_observability_captures_trace(image_id)
 
     def _login(self, session: requests.Session) -> dict[str, str]:
         resp = session.post(
@@ -113,7 +115,9 @@ class TestImageThumbnailFlow:
         assert resp.status_code == HTTPStatus.CREATED, f"create task failed: {resp.text}"
         return resp.json()["task_id"]
 
-    def _poll_until_done(self, session: requests.Session, task_id: str) -> None:
+    def _assert_async_worker_processes_task(
+        self, session: requests.Session, task_id: str
+    ) -> None:
         status = "unknown"
         for _ in range(POLL_MAX):
             resp = session.get(
@@ -128,17 +132,22 @@ class TestImageThumbnailFlow:
             time.sleep(POLL_INTERVAL)
         raise AssertionError(f"timed out waiting for task (last status={status})")
 
-    def _assert_thumbnail_exists(self, upload_url: str) -> None:
+    def _assert_storage_contains_thumbnail(self, upload_url: str) -> None:
         object_key = urllib.parse.urlparse(upload_url).path.lstrip("/")
         bucket, _, original_key = object_key.partition("/")
         thumbnail_key = Image.format_thumbnail_key_from_original(original_key)
         internal_s3._client.head_object(Bucket=bucket, Key=original_key)
         internal_s3._client.head_object(Bucket=bucket, Key=thumbnail_key)
 
-    def _assert_jaeger_trace(self, image_id: str) -> None:
-        time.sleep(5)  # BSP flush buffer
-        data = _query_jaeger_trace(image_id)
-        assert data["data"], f"no Jaeger trace for image_id={image_id}"
+    def _assert_observability_captures_trace(self, image_id: str) -> None:
+        data: dict = {}
+        for _ in range(JAEGER_POLL_MAX):
+            data = _query_jaeger_trace(image_id)
+            if data.get("data"):
+                break
+            time.sleep(JAEGER_POLL_INTERVAL)
+
+        assert data.get("data"), f"no Jaeger trace for image_id={image_id} after retries"
         service_names = [p["serviceName"] for p in data["data"][0]["processes"].values()]
         assert "django-thumbnail-app" in service_names, (
             f"missing web span. services={service_names}"

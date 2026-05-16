@@ -20,81 +20,75 @@ _apply: Callable[..., object] = cast(Callable[..., object], generate_thumbnail.a
 
 class TestGenerateThumbnail:
     @pytest.mark.parametrize(
-        (
-            "download_factory",
-            "download_side_effect",
-            "retries",
-            "expected_status",
-            "expected_error",
-            "expected_raises",
-        ),
+        ("download_return", "expected_status", "expected_error"),
         [
-            (
+            pytest.param(
                 lambda: make_image_buf(),
-                None,
-                None,
                 ImageStatus.DONE,
                 "",
-                None,
+                id="success",
             ),
-            (
+            pytest.param(
                 lambda: io.BytesIO(b"not an image"),
-                None,
-                None,
                 ImageStatus.FAILED,
                 "invalid image file",
-                None,
-            ),
-            (
-                None,
-                ConnectionError("connection refused"),
-                MAX_RETRIES,
-                ImageStatus.FAILED,
-                "",
-                ConnectionError,
-            ),
-            (
-                None,
-                ConnectionError("connection refused"),
-                MAX_RETRIES - 1,
-                ImageStatus.PROCESSING,
-                "",
-                Retry,
+                id="invalid_image",
             ),
         ],
-        ids=["success", "invalid_image", "retry_exhausted", "retry_pending"],
     )
-    def test_status_outcomes(
+    def test_direct_call(
         self,
-        download_factory: Callable[[], object] | None,
-        download_side_effect: Exception | None,
-        retries: int | None,
+        download_return: Callable[[], object],
         expected_status: ImageStatus,
         expected_error: str,
-        expected_raises: type[Exception] | None,
     ) -> None:
         task = make_image_task()
         with (
-            patch("images.tasks.internal_s3.download") as mock_dl,
+            patch("images.tasks.internal_s3.download", return_value=download_return()),
             patch("images.tasks.internal_s3.upload"),
         ):
-            if download_side_effect is not None:
-                mock_dl.side_effect = download_side_effect
-            elif download_factory is not None:
-                mock_dl.return_value = download_factory()
-
-            if expected_raises is not None:
-                with pytest.raises(expected_raises):
-                    _apply(args=[str(task.id)], retries=retries)
-            elif retries is not None:
-                _apply(args=[str(task.id)], retries=retries)
-            else:
-                generate_thumbnail(str(task.id))
+            generate_thumbnail(str(task.id))
 
         task.refresh_from_db()
         assert task.status == expected_status
-        if expected_error:
-            assert task.error_message == expected_error
+        assert task.error_message == expected_error
+
+    @pytest.mark.parametrize(
+        ("retries", "expected_status", "expected_raises"),
+        [
+            pytest.param(
+                MAX_RETRIES,
+                ImageStatus.FAILED,
+                ConnectionError,
+                id="retry_exhausted",
+            ),
+            pytest.param(
+                MAX_RETRIES - 1,
+                ImageStatus.PROCESSING,
+                Retry,
+                id="retry_pending",
+            ),
+        ],
+    )
+    def test_resilient_to_download_failure(
+        self,
+        retries: int,
+        expected_status: ImageStatus,
+        expected_raises: type[Exception],
+    ) -> None:
+        task = make_image_task()
+        with (
+            patch(
+                "images.tasks.internal_s3.download",
+                side_effect=ConnectionError("connection refused"),
+            ),
+            patch("images.tasks.internal_s3.upload"),
+            pytest.raises(expected_raises),
+        ):
+            _apply(args=[str(task.id)], retries=retries)
+
+        task.refresh_from_db()
+        assert task.status == expected_status
 
     def test_thumbnail_uploaded_to_correct_key(self) -> None:
         task = make_image_task()
