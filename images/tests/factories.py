@@ -18,11 +18,11 @@ class UserFactory(factory.django.DjangoModelFactory):
     email = factory.LazyAttribute(lambda o: o.username)
 
     @factory.post_generation
-    def password(self, create: bool, extracted: str | None, **kwargs: object) -> None:
-        pwd = extracted or USER_PLAIN_PASSWORD
-        self.set_password(pwd)
+    def password(self, create: bool, extracted: str | None, **kwargs: dict) -> None:
+        user = cast(User, self)
+        user.set_password(extracted or USER_PLAIN_PASSWORD)
         if create:
-            self.save(update_fields=["password"])
+            user.save(update_fields=["password"])
 
 
 class ImageFactory(factory.django.DjangoModelFactory):

@@ -10,6 +10,7 @@ from .models import Image, ImageTask
 from .storage import internal_s3
 
 THUMBNAIL_SIZE = (20, 20)
+GENERATE_THUMBNAIL_MAX_RETRIES = 3
 
 
 class InvalidImageError(Exception):
@@ -43,7 +44,7 @@ def _make_thumbnail(buf: io.BytesIO) -> io.BytesIO:
     return out
 
 
-@shared_task(bind=True, max_retries=3)
+@shared_task(bind=True, max_retries=GENERATE_THUMBNAIL_MAX_RETRIES)
 def generate_thumbnail(self: Task, image_task_id: str) -> None:
     task = ImageTask.objects.select_related("image").get(id=image_task_id)
     celery_id = self.request.id or ""

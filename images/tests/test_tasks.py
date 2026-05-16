@@ -1,48 +1,61 @@
 import io
 from collections.abc import Callable
+from typing import cast
 from unittest.mock import patch
 
 import pytest
 from celery.exceptions import Retry
 
 from images.models import ImageStatus
-from images.tasks import generate_thumbnail
+from images.tasks import GENERATE_THUMBNAIL_MAX_RETRIES, generate_thumbnail
 
 from .factories import make_image_task
 from .utils import make_image_buf
 
 pytestmark = pytest.mark.django_db
 
-MAX_RETRIES = generate_thumbnail.max_retries
+MAX_RETRIES = GENERATE_THUMBNAIL_MAX_RETRIES
+_apply: Callable[..., object] = cast(Callable[..., object], generate_thumbnail.apply)
 
 
 class TestGenerateThumbnail:
     @pytest.mark.parametrize(
-        ("download_factory", "retries", "expected_status", "expected_error", "expected_raises"),
+        (
+            "download_factory",
+            "download_side_effect",
+            "retries",
+            "expected_status",
+            "expected_error",
+            "expected_raises",
+        ),
         [
             (
-                lambda: {"return_value": make_image_buf()},
+                lambda: make_image_buf(),
+                None,
                 None,
                 ImageStatus.DONE,
                 "",
                 None,
             ),
             (
-                lambda: {"return_value": io.BytesIO(b"not an image")},
+                lambda: io.BytesIO(b"not an image"),
+                None,
                 None,
                 ImageStatus.FAILED,
                 "invalid image file",
                 None,
             ),
             (
-                lambda: {"side_effect": ConnectionError("connection refused")},
+                None,
+                ConnectionError("connection refused"),
                 MAX_RETRIES,
                 ImageStatus.FAILED,
                 "",
                 ConnectionError,
             ),
             (
-                lambda: {"side_effect": ConnectionError("connection refused")},
+                None,
+                ConnectionError("connection refused"),
                 MAX_RETRIES - 1,
                 ImageStatus.PROCESSING,
                 "",
@@ -53,7 +66,8 @@ class TestGenerateThumbnail:
     )
     def test_status_outcomes(
         self,
-        download_factory: Callable[[], dict[str, object]],
+        download_factory: Callable[[], object] | None,
+        download_side_effect: Exception | None,
         retries: int | None,
         expected_status: ImageStatus,
         expected_error: str,
@@ -61,14 +75,19 @@ class TestGenerateThumbnail:
     ) -> None:
         task = make_image_task()
         with (
-            patch("images.tasks.internal_s3.download", **download_factory()),
+            patch("images.tasks.internal_s3.download") as mock_dl,
             patch("images.tasks.internal_s3.upload"),
         ):
+            if download_side_effect is not None:
+                mock_dl.side_effect = download_side_effect
+            elif download_factory is not None:
+                mock_dl.return_value = download_factory()
+
             if expected_raises is not None:
                 with pytest.raises(expected_raises):
-                    generate_thumbnail.apply(args=[str(task.id)], retries=retries)
+                    _apply(args=[str(task.id)], retries=retries)
             elif retries is not None:
-                generate_thumbnail.apply(args=[str(task.id)], retries=retries)
+                _apply(args=[str(task.id)], retries=retries)
             else:
                 generate_thumbnail(str(task.id))
 

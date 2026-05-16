@@ -12,10 +12,14 @@ class TestLatestTask:
     def test_latest_task_returns_newest(self) -> None:
         image = make_image()
         older = make_image_task(image=image, status=ImageStatus.FAILED)
-        assert image.latest_task().id == older.id
+        latest_task = image.latest_task()
+        assert latest_task is not None
+        assert latest_task.id == older.id
 
         newer = make_image_task(image=image, status=ImageStatus.DONE)
-        assert image.latest_task().id == newer.id
+        latest_task = image.latest_task()
+        assert latest_task is not None
+        assert latest_task.id == newer.id
 
     def test_latest_task_none_when_no_tasks(self) -> None:
         image = make_image()
