@@ -39,8 +39,7 @@ SMOKE_SERVICE_NAME = settings.SMOKE_OTEL_SERVICE_NAME
 
 POLL_MAX = 20
 POLL_INTERVAL = 2
-USERNAME = "test1@example.com"
-PASSWORD = "test1"
+USERNAME, PASSWORD = settings.TEST_USERS[0]
 
 pytestmark = [pytest.mark.smoke]
 

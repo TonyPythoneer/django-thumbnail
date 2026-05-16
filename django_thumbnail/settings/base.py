@@ -81,6 +81,10 @@ AUTH_PASSWORD_VALIDATORS = [
 LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/"
 
+# Permanent test accounts (dev/test only — leave empty in prod).
+# Consumed by `manage.py create_test_users` and smoke tests.
+TEST_USERS: list[tuple[str, str]] = []
+
 # ── Internationalisation ──────────────────────────────────────
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
