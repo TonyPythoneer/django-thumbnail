@@ -2,7 +2,6 @@ import io
 from http import HTTPMethod, HTTPStatus
 from typing import cast
 
-from celery.result import AsyncResult
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -74,7 +73,7 @@ def tasks_create(request: HttpRequest) -> JsonResponse:
 
 
 @login_required_json
-@require_http_methods([HTTPMethod.GET, HTTPMethod.DELETE])
+@require_http_methods([HTTPMethod.GET])
 def tasks_detail(request: HttpRequest, task_id: str) -> JsonResponse:
     task = (
         ImageTask.objects.select_related("image")
@@ -83,12 +82,6 @@ def tasks_detail(request: HttpRequest, task_id: str) -> JsonResponse:
     )
     if not task:
         return JsonResponse({"error": "not found"}, status=HTTPStatus.NOT_FOUND)
-
-    if request.method == HTTPMethod.DELETE:
-        if task.celery_task_id:
-            AsyncResult(task.celery_task_id).revoke(terminate=True)
-        task.mark_failed("revoked")
-        return JsonResponse({"revoked": task_id})
 
     return JsonResponse(task.to_dict())
 

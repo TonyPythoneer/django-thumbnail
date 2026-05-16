@@ -215,16 +215,6 @@ class TestTasksAPI:
         if expected_status == HTTPStatus.OK:
             assert resp.json()["status"] == ImageStatus.DONE
 
-    def test_cancel_task(self, auth_client: tuple[Client, User]) -> None:
-        client, user = auth_client
-        image = make_image(user=user)
-        task = make_image_task(image=image, status=ImageStatus.PENDING)
-        with patch("images.views.AsyncResult"):
-            resp = client.delete(reverse(self.detail_viewname, kwargs={"task_id": task.id}))
-        assert resp.status_code == HTTPStatus.OK
-        task.refresh_from_db()
-        assert task.status == ImageStatus.FAILED
-
     def test_unauthenticated(self, client: Client) -> None:
         resp = client.post(
             reverse(self.list_viewname),
