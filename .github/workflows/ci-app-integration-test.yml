@@ -3,8 +3,18 @@ name: CI - app integration test
 on:
   push:
     branches: ["**"]
+    paths:
+      - "**.py"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/ci-app-integration-test.yml"
   pull_request:
     branches: ["**"]
+    paths:
+      - "**.py"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/ci-app-integration-test.yml"
 
 jobs:
   test:
