@@ -3,7 +3,22 @@ name: CI - smoke test
 on:
   push:
     branches: [main]
+    paths:
+      - "**.py"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "Dockerfile*"
+      - "docker-compose*.yml"
+      - ".github/workflows/ci-smoke-test.yml"
   pull_request:
+    branches: [main]
+    paths:
+      - "**.py"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "Dockerfile*"
+      - "docker-compose*.yml"
+      - ".github/workflows/ci-smoke-test.yml"
 
 jobs:
   smoke:
