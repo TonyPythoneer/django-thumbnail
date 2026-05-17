@@ -4,9 +4,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # ── Security ─────────────────────────────────────────────────
-SECRET_KEY = os.environ.get(
-    "SECRET_KEY", "django-insecure-dev-only-change-in-production"
-)
+SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-dev-only-change-in-production")
 
 DEBUG = False
 
@@ -14,6 +12,7 @@ ALLOWED_HOSTS: list[str] = []
 
 # ── Application ──────────────────────────────────────────────
 INSTALLED_APPS = [
+    "django_thumbnail.apps.CoreConfig",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -73,9 +72,7 @@ CELERY_TASK_SERIALIZER = "json"
 
 # ── Auth ─────────────────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
-    },
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
@@ -83,6 +80,10 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/"
+
+# Permanent test accounts (dev/test only — leave empty in prod).
+# Consumed by `manage.py create_test_users` and smoke tests.
+TEST_USERS: list[tuple[str, str]] = []
 
 # ── Internationalisation ──────────────────────────────────────
 LANGUAGE_CODE = "en-us"
@@ -101,22 +102,16 @@ AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID", "minioadmin")
 AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "minioadmin")
 AWS_STORAGE_BUCKET_NAME = os.environ.get("AWS_STORAGE_BUCKET_NAME", "thumbnails")
 AWS_S3_ENDPOINT_URL = os.environ.get("AWS_S3_ENDPOINT_URL", "http://localhost:9000")
-AWS_S3_PUBLIC_ENDPOINT_URL = os.environ.get(
-    "AWS_S3_PUBLIC_ENDPOINT_URL", AWS_S3_ENDPOINT_URL
-)
+AWS_S3_PUBLIC_ENDPOINT_URL = os.environ.get("AWS_S3_PUBLIC_ENDPOINT_URL", AWS_S3_ENDPOINT_URL)
 AWS_S3_PUBLIC_SIGNATURE_VERSION = "s3v4"  # minio requires s3v4
-AWS_S3_ADDRESSING_STYLE = "path"
-AWS_DEFAULT_ACL = None
-AWS_QUERYSTRING_AUTH = True
 
 # ── OpenTelemetry ─────────────────────────────────────────────
 OTEL_SDK_DISABLED = os.environ.get("OTEL_SDK_DISABLED", "false").lower() == "true"
 OTEL_SERVICE_NAME = os.environ.get("OTEL_SERVICE_NAME", "django-thumbnail")
-OTEL_EXPORTER_OTLP_ENDPOINT = os.environ.get(
-    "OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317"
-)
+OTEL_EXPORTER_OTLP_ENDPOINT = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
 
 # ── Smoke E2E endpoints for the real world ───────────────────
 #    Test external-facing services over the network (not via in-process Django).
 SMOKE_DJANGO_WEB_URL = os.environ.get("SMOKE_DJANGO_WEB_URL", "http://localhost:8000")
 SMOKE_JAEGER_BASE_URL = os.environ.get("SMOKE_JAEGER_BASE_URL", "http://localhost:16686")
+SMOKE_OTEL_SERVICE_NAME = os.environ.get("SMOKE_OTEL_SERVICE_NAME", "django-thumbnail-smoke")

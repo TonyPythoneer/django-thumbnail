@@ -13,10 +13,31 @@ dependencies = [
     "opentelemetry-instrumentation-botocore>=0.62b1",
     "opentelemetry-instrumentation-celery>=0.62b1",
     "opentelemetry-instrumentation-django>=0.62b1",
+    "opentelemetry-instrumentation-requests>=0.62b1",
     "opentelemetry-sdk>=1.41.1",
     "pillow>=12.2.0",
     "psycopg[binary]>=3.3.4",
 ]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+extend-exclude = [".claude"]
+
+[tool.ruff.lint]
+# Keep the set small and deliberate. Each rule earns its place.
+#   E, W — pycodestyle (style errors/warnings)
+#   F    — pyflakes (undefined names, unused imports)
+#   I    — isort (import ordering)
+#   UP   — pyupgrade (modern syntax for the pinned Python)
+#   B    — flake8-bugbear (likely bugs)
+#   SIM  — flake8-simplify (obvious simplifications)
+#   ANN  — flake8-annotations (require type annotations, ban Any via ANN401)
+select = ["E", "W", "F", "I", "UP", "B", "SIM", "ANN"]
+
+[tool.ruff.lint.per-file-ignores]
+# migrations are Django-generated; annotation would be overwritten by makemigrations
+"**/migrations/**" = ["ANN"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "django_thumbnail.settings.test"
@@ -32,11 +53,12 @@ dev = [
     "boto3-stubs[s3]>=1.43.6",
     "django-stubs>=6.0.4",
     "factory-boy>=3.3.3",
+    "pyrefly>=1.0.0",
     "pytest>=9.0.3",
-    "pytest-cov>=7.1.0",
     "pytest-django>=4.12.0",
     "pytest-xdist>=3.8.0",
     "requests>=2.34.1",
     "ruff>=0.15.12",
     "tenacity>=9.1.4",
+    "types-requests>=2.33.0.20260513",
 ]

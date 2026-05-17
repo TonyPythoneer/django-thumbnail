@@ -10,8 +10,5 @@ OTEL_SDK_DISABLED = True
 CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = True
 
-# ── S3 / MinIO ───────────────────────────────────────────────
-STORAGES = {
-    "default": {"BACKEND": "django.core.files.storage.InMemoryStorage"},
-    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
-}
+# ── Test accounts ────────────────────────────────────────────
+from ._test_users import TEST_USERS  # noqa: E402, F401

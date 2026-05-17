@@ -119,3 +119,6 @@ fabric.properties
 
 package-lock.json
 *.db
+
+# else
+data/

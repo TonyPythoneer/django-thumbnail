@@ -66,17 +66,6 @@ def problematic_view(request):
 
 ## Django Debug Tools
 
-### Django Debug Toolbar
-
-```python
-# settings/dev.py
-INSTALLED_APPS += ["debug_toolbar"]
-MIDDLEWARE += ["debug_toolbar.middleware.DebugToolbarMiddleware"]
-INTERNAL_IPS = ["127.0.0.1"]
-```
-
-Check SQL panel for N+1 queries, slow queries > 10ms.
-
 ### Python Debugger
 
 ```python
@@ -165,17 +154,6 @@ my_task(arg)  # Direct call, not .delay()
 CELERY_TASK_ALWAYS_EAGER = True
 ```
 
-## Debugging HTMX
-
-```html
-<script>htmx.logAll();</script>
-```
-
-```python
-def view(request):
-    print(f"HTMX: {request.headers.get('HX-Request')}")
-```
-
 ## Checklist
 
 Before claiming fixed:
@@ -183,7 +161,7 @@ Before claiming fixed:
 - [ ] Root cause identified
 - [ ] Reproduction test passes
 - [ ] Full test suite passes (`uv run pytest`)
-- [ ] No type errors (`uv run pyright`)
+- [ ] No type errors (`uv run pyrefly check`)
 - [ ] No lint errors (`uv run ruff check .`)
 
 ## Red Flags
@@ -200,6 +178,5 @@ Three consecutive failed fixes = architectural problem. Stop and discuss.
 - **pytest-django-patterns**: Write reproduction tests
 - **django-models**: Debug QuerySet issues
 - **celery-patterns**: Debug async task failures
-- **htmx-alpine-patterns**: Debug HTMX requests
 - **django-extensions**: Use `show_urls`, `list_model_info`, and `shell_plus` for project introspection
 - **skill-creator**: Create debugging-specific skills for recurring issues

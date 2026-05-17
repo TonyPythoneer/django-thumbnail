@@ -1,42 +1,87 @@
 {
+  "format_on_save": "on",
   "languages": {
     "Python": {
-      "language_servers": ["pyright", "ruff"],
+      "tab_size": 4,
+      "hard_tabs": false,
+      "preferred_line_length": 100,
+      "language_servers": ["pyrefly", "ruff", "!pyright", "!basedpyright"],
       "format_on_save": "on",
-      "formatter": {
-        "external": {
-          "command": "uv",
-          "arguments": [
-            "run",
-            "ruff",
-            "format",
-            "--stdin-filename",
-            "{buffer_path}",
-            "-",
-          ],
-        },
-      },
+      "formatter": [
+        { "code_actions": { "source.organizeImports.ruff": true, "source.fixAll.ruff": true } },
+        { "language_server": { "name": "ruff" } }
+      ],
+      "inlay_hints": {
+        "enabled": true,
+        "show_parameter_hints": false,
+        "show_other_hints": true,
+        "show_type_hints": true
+      }
     },
+    "JSON": {
+      "tab_size": 2,
+      "hard_tabs": false
+    },
+    "Markdown": {
+      "format_on_save": "off",
+      "soft_wrap": "editor_width"
+    },
+    "HTML": {
+      "tab_size": 2,
+      "hard_tabs": false
+    }
   },
   "lsp": {
-    "pyright": {
-      "settings": {
-        "python": {
-          "pythonPath": ".venv/bin/python",
-        },
-        "pyright": {
-          "plugins": {
-            "django-stubs": {
-              "django_settings_module": "django_thumbnail.settings.local",
-            },
-          },
-        },
-      },
+    "pyrefly": {
+      "binary": {
+        "path": ".venv/bin/pyrefly",
+        "arguments": ["lsp"]
+      }
     },
     "ruff": {
       "settings": {
-        "interpreter": [".venv/bin/python"],
-      },
-    },
+        "interpreter": [".venv/bin/python"]
+      }
+    }
   },
+  "file_types": {
+    "JSONC": [".zed/*.json"]
+  },
+  "file_scan_exclusions": [
+    "**/.git",
+    "**/.svn",
+    "**/.hg",
+    "**/.venv",
+    "**/.venv*",
+    "**/__pycache__",
+    "**/.ruff_cache",
+    "**/.pytest_cache",
+    "**/.mypy_cache",
+    "**/htmlcov",
+    "**/.coverage",
+    "**/staticfiles",
+    "**/media",
+    "**/dist",
+    "**/build",
+    "**/*.egg-info",
+    "**/uv.lock",
+    "**/node_modules"
+  ],
+  "project_panel": {
+    "auto_reveal_entries": true,
+    "folder_icons": true
+  },
+  "search": {
+    "regex": false,
+    "case_sensitive": false,
+    "whole_word": false
+  },
+  "terminal": {
+    "working_directory": "current_project_directory",
+    "env": {
+      "PYTHONUNBUFFERED": "1",
+      "FORCE_COLOR": "1"
+    },
+    "shell": "system"
+  }
 }

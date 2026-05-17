@@ -1,0 +1,79 @@
+[
+  {
+    "label": "dev: up (full stack)",
+    "command": "make up",
+    "use_new_terminal": true,
+    "allow_concurrent_runs": false,
+    "reveal": "always"
+  },
+  {
+    "label": "dev: up-infra (db+redis+minio+jaeger)",
+    "command": "make up-infra",
+    "use_new_terminal": true,
+    "allow_concurrent_runs": false,
+    "reveal": "always"
+  },
+  {
+    "label": "dev: down",
+    "command": "make down",
+    "reveal": "always"
+  },
+  {
+    "label": "logs: app (web+worker)",
+    "command": "make logs-app",
+    "use_new_terminal": true,
+    "reveal": "always"
+  },
+  {
+    "label": "logs: infra",
+    "command": "make logs-infra",
+    "use_new_terminal": true,
+    "reveal": "always"
+  },
+  {
+    "label": "shell: django",
+    "command": "make shell",
+    "use_new_terminal": true,
+    "reveal": "always"
+  },
+  {
+    "label": "test: pytest",
+    "command": "make test",
+    "reveal": "always"
+  },
+  {
+    "label": "test: smoke (docker stack)",
+    "command": "make smoke",
+    "reveal": "always"
+  },
+  {
+    "label": "check: ruff + pyrefly",
+    "command": "make check",
+    "reveal": "always"
+  },
+  {
+    "label": "fix: ruff lint + format",
+    "command": "make fix",
+    "reveal": "always"
+  },
+  {
+    "label": "migrate",
+    "command": "make migrate",
+    "reveal": "always"
+  },
+  {
+    "label": "clean: db",
+    "command": "make clean-db",
+    "reveal": "always"
+  },
+  {
+    "label": "clean: bucket",
+    "command": "make clean-bucket",
+    "reveal": "always"
+  },
+  {
+    "label": "clean: all (db + bucket)",
+    "command": "make clean-all",
+    "reveal": "always"
+  }
+]

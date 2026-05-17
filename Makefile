@@ -1,4 +1,4 @@
-.PHONY: shell test smoke lint format up-infra up down logs-app logs-infra test-image-upload clean-db clean-bucket clean-all help
+.PHONY: shell test smoke check fix migrate up-infra up down logs-app logs-infra test-image-upload clean-db clean-bucket clean-all help
 
 # ============================================================
 # Config
@@ -6,7 +6,6 @@
 PROJECT          = django_thumbnail
 PYTHON_CMD       = uv run python
 DJANGO_SETTINGS_LOCAL = DJANGO_SETTINGS_MODULE=$(PROJECT).settings.local
-DJANGO_SETTINGS_TEST  = DJANGO_SETTINGS_MODULE=$(PROJECT).settings.test
 
 # ============================================================
 # Django shell (inside web container)
@@ -14,19 +13,24 @@ DJANGO_SETTINGS_TEST  = DJANGO_SETTINGS_MODULE=$(PROJECT).settings.test
 shell:              ## Django shell (requires: make up)
 	docker compose exec web python manage.py shell
 
+migrate:            ## Apply DB migrations (requires: make up)
+	docker compose exec web python manage.py migrate
+
 # ============================================================
 # Code quality
 # ============================================================
 test:               ## Run pytest suite in local host
-	$(DJANGO_SETTINGS_TEST) $(PYTHON_CMD) -m pytest
+	$(PYTHON_CMD) -m pytest
 
 smoke:              ## Smoke test docker-compose stack from host (requires: make up)
 	$(DJANGO_SETTINGS_LOCAL) $(PYTHON_CMD) -m pytest -m smoke -v
 
-lint:               ## Ruff lint check
+check:              ## Verify lint + format + types (read-only, CI-safe)
 	$(PYTHON_CMD) -m ruff check
+	$(PYTHON_CMD) -m ruff format --check
+	$(PYTHON_CMD) -m pyrefly check
 
-format:             ## Ruff auto-fix + format
+fix:                ## Auto-fix lint + format
 	$(PYTHON_CMD) -m ruff check --fix
 	$(PYTHON_CMD) -m ruff format
 

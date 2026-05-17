@@ -5,7 +5,12 @@ description: Django-extensions management commands for project introspection, de
 
 # Django Extensions
 
-This project has django-extensions installed. Use these commands to understand and interact with the Django project.
+> **Status: DORMANT** — `django-extensions` is NOT currently installed in this project. This skill is preserved as a reference for future activation. To activate:
+> 1. `uv add --group dev django-extensions`
+> 2. Add `INSTALLED_APPS += ["django_extensions"]` to `django_thumbnail/settings/local.py` (dev-only, NOT in `base.py`)
+> 3. Remove this **Status: DORMANT** block
+
+When activated, use these commands to understand and interact with the Django project.
 
 ## Introspection
 
@@ -93,6 +98,6 @@ python manage.py runprofileserver --kcachegrind --prof-path=/tmp/profiles
 
 ## Notes
 
-- Model notation: `app.ModelName` (e.g., `core.EmailAccount`, `metabox.Thread`)
+- Model notation: `app.ModelName` (e.g., `images.Image`, `images.ImageTask`)
 - Settings wildcards: `AUTH*`, `*_DIRS`, `DATABASE*`
 - Commands run from project root

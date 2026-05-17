@@ -31,16 +31,12 @@ Senior code reviewer ensuring high standards for the Django codebase.
 ### Django Views
 - **Correct HTTP methods** - GET for reads, POST for writes
 - **Proper status codes** - 200, 201, 400, 404, etc.
-- **HTMX handling** - Check `request.htmx` for partial responses
 - **select_related/prefetch_related** - Avoid N+1 queries
 
 ```python
 # CORRECT - Proper view pattern
 def post_list(request):
     posts = Post.objects.select_related("author").all()
-
-    if request.htmx:
-        return render(request, "posts/_list.html", {"posts": posts})
 
     return render(request, "posts/list.html", {"posts": posts})
 ```
@@ -148,14 +144,13 @@ if form.is_valid():                   # Good
 ## Review Process
 
 1. **Run checks**: `uv run ruff check .` for linting
-2. **Type check**: `uv run pyright` for type errors
+2. **Type check**: `uv run pyrefly check` for type errors
 3. **Analyze diff**: `git diff` for all changes
 4. **Logic review**: Read line by line, trace execution paths
 5. **Apply checklist**: Python, Django, testing, security
 
 ## Integration with Other Skills
 
-- **htmx-alpine-patterns**: Partial template responses
 - **django-models**: QuerySet optimization
 - **django-forms**: Form validation patterns
 - **pytest-django-patterns**: Factory functions, fixtures

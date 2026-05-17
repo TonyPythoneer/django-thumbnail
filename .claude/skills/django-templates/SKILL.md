@@ -41,6 +41,8 @@ Use three-level inheritance for consistent layouts:
 
 ## Partials and Components
 
+> **Note**: This project does not currently use htmx. The section below is preserved for reference only — it does not apply to the current codebase.
+
 **Partials** are template fragments included in other templates. Use for:
 - Repeated content (pagination, empty states)
 - HTMX responses that replace portions of the page
